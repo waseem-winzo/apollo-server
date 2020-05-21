@@ -7,6 +7,8 @@ import {
   ReportHeader,
   Trace,
   TracesAndStats,
+  IContextualizedStats,
+  IStatsContext,
 } from 'apollo-reporting-protobuf';
 import { Response, fetch, Headers } from 'apollo-server-env';
 import {
@@ -31,6 +33,9 @@ import { makeTraceDetails } from './traceDetails';
 import { GraphQLSchema, printSchema } from 'graphql';
 import { computeExecutableSchemaId } from '../schemaReporting';
 import type { InternalApolloServerPlugin } from '../internalPlugin';
+import { DurationHistogram } from './durationHistogram';
+import { ContextualizedStats, traceHasErrors } from "./contextualizedStats";
+import { InMemoryLRUCache } from 'apollo-server-caching';
 
 const reportHeaderDefaults = {
   hostname: os.hostname(),
@@ -41,6 +46,52 @@ const reportHeaderDefaults = {
   // XXX not actually uname, but what node has easily.
   uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`,
 };
+
+class TracesSeenMap {
+  readonly traceCaches: Map<number, InMemoryLRUCache<Boolean>> = new Map();
+  readonly maxTraceCaches: number = 3;
+
+  async seen(endTime: number, cacheKey: string): Promise<Boolean> {
+    return (await this.traceCaches.get(endTime)?.get(cacheKey)) || false;
+  }
+
+  async add(endTime: number, cacheKey: string) {
+    const traceCache = this.traceCaches.get(endTime);
+    if (traceCache) {
+      await traceCache.set(cacheKey, true);
+      return;
+    }
+
+    // If we already have max trace caches then drop the oldest one if the new
+    // trace will be in a more recent bucket.
+    const minEndTime = Math.min(...Array.from(this.traceCaches.keys()));
+    if (endTime > minEndTime && this.traceCaches.size >= this.maxTraceCaches) {
+      this.traceCaches.delete(minEndTime);
+    }
+
+    if (this.traceCaches.size < this.maxTraceCaches) {
+      const newTraceCache = new InMemoryLRUCache<Boolean>({
+        // 3MiB limit, very much approximately since we can't be sure how V8 might
+        // be storing these strings internally. Though this should be enough to
+        // store a fair amount of traces.
+
+        // A future version of this might expose some
+        // configuration option to grow the cache, but ideally, we could do that
+        // dynamically based on the resources available to the server, and not add
+        // more configuration surface area. Hopefully the warning message will allow
+        // us to evaluate the need with more validated input from those that receive
+        // it.
+        maxSize: Math.pow(2, 20) * 3,
+        sizeCalculator: (_, key) => {
+          return Buffer.byteLength(key, 'uft8');
+        },
+      });
+      this.traceCaches.set(endTime, newTraceCache);
+      await newTraceCache.set(cacheKey, true);
+      return;
+    }
+  }
+}
 
 class ReportData {
   report!: Report;
@@ -57,6 +108,34 @@ class ReportData {
   reset() {
     this.report = new Report({ header: this.header });
     this.size = 0;
+  }
+}
+
+class StatsMap {
+  readonly map: { [k: string]: ContextualizedStats } = Object.create(null);
+
+  /**
+   * This function is used by the protobuf generator to convert this map into
+   * an array of contextualized stats to serialize
+   */
+  public toArray(): IContextualizedStats[] {
+    return Object.values(this.map);
+  }
+
+  public addTrace(trace: Trace) {
+    const statsContext: IStatsContext = {
+      clientName: trace.clientName,
+      clientVersion: trace.clientVersion,
+      clientReferenceId: trace.clientReferenceId,
+    };
+
+    const statsContextKey = JSON.stringify(statsContext);
+
+    // TODO: Update sizing
+    (
+      this.map[statsContextKey] ||
+      (this.map[statsContextKey] = new ContextualizedStats(statsContext))
+    ).addTrace(trace);
   }
 }
 
@@ -144,6 +223,9 @@ export function ApolloServerPluginUsageReporting<TContext>(
           options.reportIntervalMs || 10 * 1000,
         );
       }
+
+      const tracesSeenMap = new TracesSeenMap();
+
       let stopped = false;
 
       function executableSchemaIdForSchema(schema: GraphQLSchema) {
@@ -470,27 +552,55 @@ export function ApolloServerPluginUsageReporting<TContext>(
 
             const reportData = getReportData(executableSchemaId);
             const { report } = reportData;
+            const { trace } = treeBuilder;
 
-            const protobufError = Trace.verify(treeBuilder.trace);
+            const protobufError = Trace.verify(trace);
             if (protobufError) {
               throw new Error(`Error encoding trace: ${protobufError}`);
             }
-            const encodedTrace = Trace.encode(treeBuilder.trace).finish();
-
             const signature = getTraceSignature();
 
             const statsReportKey = `# ${operationName || '-'}\n${signature}`;
+
             if (!report.tracesPerQuery.hasOwnProperty(statsReportKey)) {
               report.tracesPerQuery[statsReportKey] = new TracesAndStats();
               (report.tracesPerQuery[statsReportKey] as any).encodedTraces = [];
+              report.tracesPerQuery[
+                statsReportKey
+              ].statsWithContext = new StatsMap();
             }
-            // See comment on our override of Traces.encode inside of
-            // apollo-reporting-protobuf to learn more about this strategy.
-            (report.tracesPerQuery[statsReportKey] as any).encodedTraces.push(
-              encodedTrace,
+
+            const endTime =
+              ((trace && trace.endTime && trace.endTime.seconds) || 0) % 60;
+
+            // This is a potentially expensive operation to do on every trace.
+            const hasErrors = traceHasErrors(trace);
+            const traceCacheKey = JSON.stringify({
+              statsReportKey,
+              statsBucket: DurationHistogram.durationToBucket(trace.durationNs),
+              endsAtMinute: endTime,
+              errorKey: hasErrors ? endTime % 5 : '',
+            });
+
+            const convertTraceToStats = await tracesSeenMap.seen(
+              endTime,
+              traceCacheKey,
             );
-            reportData.size +=
-              encodedTrace.length + Buffer.byteLength(statsReportKey);
+
+            if (convertTraceToStats) {
+              (report.tracesPerQuery[statsReportKey]
+                .statsWithContext as StatsMap).addTrace(trace);
+            } else {
+              const encodedTrace = Trace.encode(trace).finish();
+
+              // See comment on our override of Traces.encode inside of
+              // apollo-reporting-protobuf to learn more about this strategy.
+              (report.tracesPerQuery[statsReportKey] as any).encodedTraces.push(
+                encodedTrace,
+              );
+              reportData.size +=
+                encodedTrace.length + Buffer.byteLength(statsReportKey);
+            }
 
             // If the buffer gets big (according to our estimate), send.
             if (

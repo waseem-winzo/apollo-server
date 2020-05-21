@@ -4,6 +4,12 @@ package mdg.engine.proto;
 
 import "google/protobuf/timestamp.proto";
 
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FieldOptions {
+	bool js_use_toArray = 50505;
+}
+
 message Trace {
 	message CachePolicy {
 		enum Scope {
@@ -284,18 +290,20 @@ message PathErrorStats {
 }
 
 message QueryLatencyStats {
-	repeated int64 latency_count = 1;
+	repeated sint64 latency_count = 13 [(js_use_toArray)=true];
 	uint64 request_count = 2;
 	uint64 cache_hits = 3;
 	uint64 persisted_query_hits = 4;
 	uint64 persisted_query_misses = 5;
-	repeated int64 cache_latency_count = 6;
+	repeated sint64 cache_latency_count = 14 [(js_use_toArray)=true];
 	PathErrorStats root_error_stats = 7;
 	uint64 requests_with_errors_count = 8;
-	repeated int64 public_cache_ttl_count = 9;
-	repeated int64 private_cache_ttl_count = 10;
+	repeated sint64 public_cache_ttl_count = 15 [(js_use_toArray)=true];
+	repeated sint64 private_cache_ttl_count = 16 [(js_use_toArray)=true];
 	uint64 registered_operation_count = 11;
 	uint64 forbidden_operation_count = 12;
+	// 1, 6, 9, and 10 were old int64 histograms
+	reserved 1, 6, 9, 10;
 }
 
 message StatsContext {
@@ -319,8 +327,8 @@ message FieldStat {
 	uint64 errors_count = 4;
 	uint64 count = 5;
 	uint64 requests_with_errors_count = 6;
-	repeated int64 latency_count = 8; // Duration histogram; see docs/histograms.md
-	reserved 1, 2, 7;
+	repeated sint64 latency_count = 9 [(js_use_toArray)=true]; // Duration histogram; see docs/histograms.md
+	reserved 1, 2, 7, 8;
 }
 
 message TypeStat {
@@ -377,5 +385,5 @@ message ContextualizedStats {
 // A sequence of traces and stats. An individual trace should either be counted as a stat or trace
 message TracesAndStats {
 	repeated Trace trace = 1;
-	repeated ContextualizedStats stats_with_context = 2;
+	repeated ContextualizedStats stats_with_context = 2 [(js_use_toArray)=true];
 }
