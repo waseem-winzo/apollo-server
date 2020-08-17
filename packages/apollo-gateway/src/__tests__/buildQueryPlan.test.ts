@@ -1,19 +1,54 @@
-import { GraphQLSchema, GraphQLError } from 'graphql';
+import { GraphQLError } from 'graphql';
 import gql from 'graphql-tag';
 import { buildQueryPlan, buildOperationContext } from '../buildQueryPlan';
 import { astSerializer, queryPlanSerializer } from '../snapshotSerializers';
 import { getFederatedTestingSchema } from './execution-utils';
+import { ComposedGraphQLSchema } from '@apollo/federation';
+import { getQueryPlan } from 'apollo-wasm-bridge';
 
 expect.addSnapshotSerializer(astSerializer);
 expect.addSnapshotSerializer(queryPlanSerializer);
 
 describe('buildQueryPlan', () => {
-  let schema: GraphQLSchema;
+  let schema: ComposedGraphQLSchema;
   let errors: GraphQLError[];
 
   beforeEach(() => {
     ({ schema, errors } = getFederatedTestingSchema());
     expect(errors).toHaveLength(0);
+  });
+
+  it(`getQueryPlan`, () => {
+    const csdl = `#graphql
+      schema
+        @graph(name: "test", url: "undefined")
+        @composedGraph(version: 1)
+      {
+        query: Query
+        mutation: Mutation
+      }
+
+      type Query {
+        stuff: String @resolve(graph: "test")
+      }
+    `;
+
+    const query = `#graphql
+      query {
+        stuff
+      }
+    `;
+
+    const qp = getQueryPlan(csdl, query);
+    expect(qp).toMatchInlineSnapshot(`
+      QueryPlan {
+        Fetch(service: "test") {
+          {
+            stuff
+          }
+        },
+      }
+    `);
   });
 
   it(`should not confuse union types with overlapping field names`, () => {
@@ -35,9 +70,7 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(
-      buildOperationContext(schema, query, undefined),
-    );
+    const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -887,7 +920,7 @@ describe('buildQueryPlan', () => {
     `);
   });
 
-  describe(`experimental compression to downstream services`, () => {
+  xdescribe(`experimental compression to downstream services`, () => {
     it(`should generate fragments internally to downstream requests`, () => {
       const query = gql`
         query {

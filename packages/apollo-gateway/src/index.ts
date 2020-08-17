@@ -18,7 +18,7 @@ import {
   VariableDefinitionNode,
 } from 'graphql';
 import { GraphQLSchemaValidationError } from 'apollo-graphql';
-import { composeAndValidate, ServiceDefinition } from '@apollo/federation';
+import { composeAndValidate, ServiceDefinition, ComposedGraphQLSchema } from '@apollo/federation';
 import loglevel from 'loglevel';
 
 import { buildQueryPlan, buildOperationContext } from './buildQueryPlan';
@@ -187,7 +187,7 @@ export const SERVICE_DEFINITION_QUERY =
   'query __ApolloGetServiceDefinition__ { _service { sdl } }';
 
 export class ApolloGateway implements GraphQLService {
-  public schema?: GraphQLSchema;
+  public schema?: ComposedGraphQLSchema;
   protected serviceMap: DataSourceMap = Object.create(null);
   protected config: GatewayConfig;
   private logger: Logger;
@@ -791,14 +791,16 @@ function approximateObjectSize<T>(obj: T): number {
 // planning would be lost. Instead we set a resolver for each field
 // in order to counteract GraphQLExtensions preventing a defaultFieldResolver
 // from doing the same job
-function wrapSchemaWithAliasResolver(schema: GraphQLSchema): GraphQLSchema {
+function wrapSchemaWithAliasResolver(
+  schema: ComposedGraphQLSchema,
+): ComposedGraphQLSchema {
   const typeMap = schema.getTypeMap();
-  Object.keys(typeMap).forEach(typeName => {
+  Object.keys(typeMap).forEach((typeName) => {
     const type = typeMap[typeName];
 
     if (isObjectType(type) && !isIntrospectionType(type)) {
       const fields = type.getFields();
-      Object.keys(fields).forEach(fieldName => {
+      Object.keys(fields).forEach((fieldName) => {
         const field = fields[fieldName];
         field.resolve = defaultFieldResolverWithAliasSupport;
       });
