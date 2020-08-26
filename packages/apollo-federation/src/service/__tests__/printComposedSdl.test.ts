@@ -1,6 +1,6 @@
 import { fixtures } from 'apollo-federation-integration-testsuite';
 import { composeAndValidate } from '../../composition';
-import { parse, GraphQLError, visit, StringValueNode } from 'graphql';
+import { parse, print, GraphQLError, visit, StringValueNode } from 'graphql';
 
 describe('printComposedSdl', () => {
   let composedSdl: string, errors: GraphQLError[];
