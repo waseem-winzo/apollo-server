@@ -59,7 +59,7 @@ import { ComposedGraphQLSchema } from '@apollo/federation';
 import { getFederationMetadata } from '@apollo/federation/dist/composition/utils';
 
 import { printComposedSdl } from '@apollo/federation/dist/service/printComposedSdl';
-import { getQueryPlan } from 'apollo-wasm-bridge';
+import { getQueryPlan } from '@apollo/query-planner';
 
 const typenameField = {
   kind: Kind.FIELD,
