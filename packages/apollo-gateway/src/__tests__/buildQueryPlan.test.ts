@@ -4,7 +4,7 @@ import { buildQueryPlan, buildOperationContext } from '../buildQueryPlan';
 import { astSerializer, queryPlanSerializer } from '../snapshotSerializers';
 import { getFederatedTestingSchema } from './execution-utils';
 import { ComposedGraphQLSchema } from '@apollo/federation';
-import { getQueryPlan } from 'apollo-wasm-bridge';
+import { getQueryPlan } from '@apollo/query-planner';
 
 expect.addSnapshotSerializer(astSerializer);
 expect.addSnapshotSerializer(queryPlanSerializer);
