@@ -57,9 +57,8 @@ import {
 // import { MultiMap } from './utilities/MultiMap';
 import { ComposedGraphQLSchema } from '@apollo/federation';
 import { getFederationMetadata } from '@apollo/federation/dist/composition/utils';
-
-import { printComposedSdl } from '@apollo/federation/dist/service/printComposedSdl';
-import { getQueryPlan } from 'apollo-wasm-bridge';
+import { getQueryPlan } from '@apollo/query-planner';
+import { WasmPointer } from '.';
 
 const typenameField = {
   kind: Kind.FIELD,
@@ -78,10 +77,17 @@ export function buildQueryPlan(
   _options: BuildQueryPlanOptions = { autoFragmentization: false },
 ): QueryPlan {
 
-  const schema = printComposedSdl(operationContext.schema, operationContext.schema.extensions.serviceList);
-  const query = print(operationContext.operation);
+  const document: DocumentNode = {
+    kind: Kind.DOCUMENT,
+    definitions: [
+      operationContext.operation,
+      ...Object.values(operationContext.fragments)
+    ]
+  };
 
-  return getQueryPlan(schema, query);
+  const query = print(document);
+
+  return getQueryPlan(operationContext.queryPlannerPointer, query);
 
   // const context = buildQueryPlanningContext(operationContext, options);
 
@@ -805,6 +811,7 @@ function collectFields(
 export function buildOperationContext(
   schema: ComposedGraphQLSchema,
   document: DocumentNode,
+  queryPlannerPointer: WasmPointer,
   operationName?: string,
 ): OperationContext {
   let operation: OperationDefinitionNode | undefined;
@@ -840,7 +847,7 @@ export function buildOperationContext(
     }
   }
 
-  return { schema, operation, fragments };
+  return { schema, operation, fragments, queryPlannerPointer };
 }
 
 export function buildQueryPlanningContext(

@@ -42,6 +42,7 @@ import { getVariableValues } from 'graphql/execution/values';
 import fetcher from 'make-fetch-happen';
 import { HttpRequestCache } from './cache';
 import { fetch } from 'apollo-server-env';
+import { getQueryPlanner } from '@apollo/query-plan';
 
 export type ServiceEndpointDefinition = Pick<ServiceDefinition, 'name' | 'url'>;
 
@@ -186,6 +187,8 @@ export const HEALTH_CHECK_QUERY =
 export const SERVICE_DEFINITION_QUERY =
   'query __ApolloGetServiceDefinition__ { _service { sdl } }';
 
+export type WasmPointer = number;
+
 export class ApolloGateway implements GraphQLService {
   public schema?: ComposedGraphQLSchema;
   protected serviceMap: DataSourceMap = Object.create(null);
@@ -199,6 +202,7 @@ export class ApolloGateway implements GraphQLService {
   private compositionMetadata?: CompositionMetadata;
   private serviceSdlCache = new Map<string, string>();
   private warnedStates: WarnedStates = Object.create(null);
+  private queryPlannerPointer?: WasmPointer;
 
   private fetcher: typeof fetch = getDefaultGcsFetcher();
 
@@ -248,7 +252,9 @@ export class ApolloGateway implements GraphQLService {
     }
 
     if (isLocalConfig(this.config)) {
-      this.schema = this.createSchema(this.config.localServiceList);
+      const { schema, composedSdl } = this.createSchema(this.config.localServiceList);
+      this.schema = schema;
+      this.queryPlannerPointer = getQueryPlanner(composedSdl);
     }
 
     this.initializeQueryPlanStore();
@@ -393,7 +399,9 @@ export class ApolloGateway implements GraphQLService {
 
     if (this.queryPlanStore) this.queryPlanStore.flush();
 
-    this.schema = this.createSchema(result.serviceDefinitions);
+    const { schema, composedSdl } = this.createSchema(result.serviceDefinitions);
+    this.schema = schema;
+    this.queryPlannerPointer = getQueryPlanner(composedSdl);
 
     // Notify the schema listeners of the updated schema
     try {
@@ -457,7 +465,7 @@ export class ApolloGateway implements GraphQLService {
         .join('\n')}`,
     );
 
-    const { schema, errors } = composeAndValidate(serviceList);
+    const { schema, errors, composedSdl } = composeAndValidate(serviceList);
 
     if (errors && errors.length > 0) {
       if (this.experimental_didFailComposition) {
@@ -485,7 +493,7 @@ export class ApolloGateway implements GraphQLService {
     // with support for resolving aliases as part of the root value which
     // happens because aliases are resolved by sub services and the shape
     // of the root value already contains the aliased fields as responseNames
-    return wrapSchemaWithAliasResolver(schema);
+    return { schema: wrapSchemaWithAliasResolver(schema), composedSdl };
   }
 
   public onSchemaChange(callback: SchemaChangeCallback): Unsubscriber {
@@ -636,6 +644,7 @@ export class ApolloGateway implements GraphQLService {
     const operationContext = buildOperationContext(
       this.schema!,
       document,
+      this.queryPlannerPointer!,
       request.operationName,
     );
 

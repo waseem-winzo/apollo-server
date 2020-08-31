@@ -4,7 +4,8 @@ import { buildQueryPlan, buildOperationContext } from '../buildQueryPlan';
 import { astSerializer, queryPlanSerializer } from '../snapshotSerializers';
 import { getFederatedTestingSchema } from './execution-utils';
 import { ComposedGraphQLSchema } from '@apollo/federation';
-import { getQueryPlan } from 'apollo-wasm-bridge';
+import { getQueryPlan, getQueryPlanner } from '@apollo/query-planner';
+import { WasmPointer } from '..';
 
 expect.addSnapshotSerializer(astSerializer);
 expect.addSnapshotSerializer(queryPlanSerializer);
@@ -12,9 +13,10 @@ expect.addSnapshotSerializer(queryPlanSerializer);
 describe('buildQueryPlan', () => {
   let schema: ComposedGraphQLSchema;
   let errors: GraphQLError[];
+  let queryPlannerPointer: WasmPointer;
 
   beforeEach(() => {
-    ({ schema, errors } = getFederatedTestingSchema());
+    ({ schema, errors, queryPlannerPointer } = getFederatedTestingSchema());
     expect(errors).toHaveLength(0);
   });
 
@@ -39,7 +41,9 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const qp = getQueryPlan(csdl, query);
+    const queryPlannerPointer = getQueryPlanner(csdl);
+
+    const qp = getQueryPlan(queryPlannerPointer, query);
     expect(qp).toMatchInlineSnapshot(`
       QueryPlan {
         Fetch(service: "test") {
@@ -70,7 +74,7 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -105,7 +109,7 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -132,7 +136,7 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -212,7 +216,7 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -336,7 +340,7 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -371,7 +375,7 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -405,7 +409,7 @@ describe('buildQueryPlan', () => {
         }
       `;
 
-      const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+      const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
       expect(queryPlan).toMatchInlineSnapshot(`
         QueryPlan {
@@ -453,7 +457,7 @@ describe('buildQueryPlan', () => {
           }
         `;
 
-        const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+        const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
         expect(queryPlan).toMatchInlineSnapshot(`
           QueryPlan {
@@ -502,7 +506,7 @@ describe('buildQueryPlan', () => {
         }
       `;
 
-      const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+      const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
       expect(queryPlan).toMatchInlineSnapshot(`
         QueryPlan {
@@ -552,7 +556,7 @@ describe('buildQueryPlan', () => {
         }
       `;
 
-      const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+      const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
       expect(queryPlan).toMatchInlineSnapshot(`
         QueryPlan {
@@ -598,7 +602,7 @@ describe('buildQueryPlan', () => {
           }
         `;
 
-        const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+        const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
         expect(queryPlan).toMatchInlineSnapshot(`
           QueryPlan {
@@ -646,7 +650,7 @@ describe('buildQueryPlan', () => {
           }
         `;
 
-        const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+        const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
         expect(queryPlan).toMatchInlineSnapshot(`
           QueryPlan {
@@ -694,7 +698,7 @@ describe('buildQueryPlan', () => {
         }
       `;
 
-      const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+      const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
       expect(queryPlan).toMatchInlineSnapshot(`
         QueryPlan {
@@ -743,7 +747,7 @@ describe('buildQueryPlan', () => {
         }
       `;
 
-      const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+      const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
       expect(queryPlan).toMatchInlineSnapshot(`
         QueryPlan {
@@ -780,7 +784,7 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -847,7 +851,7 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -895,7 +899,7 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query));
+    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -939,7 +943,7 @@ describe('buildQueryPlan', () => {
       `;
 
       const queryPlan = buildQueryPlan(
-        buildOperationContext(schema, query, undefined),
+        buildOperationContext(schema, query, queryPlannerPointer, undefined),
         { autoFragmentization: true },
       );
 
@@ -1055,7 +1059,7 @@ describe('buildQueryPlan', () => {
       `;
 
       const queryPlan = buildQueryPlan(
-        buildOperationContext(schema, query, undefined),
+        buildOperationContext(schema, query, queryPlannerPointer, undefined),
         { autoFragmentization: true },
       );
 
@@ -1085,7 +1089,7 @@ describe('buildQueryPlan', () => {
       `;
 
       const queryPlan = buildQueryPlan(
-        buildOperationContext(schema, query, undefined),
+        buildOperationContext(schema, query, queryPlannerPointer, undefined),
         { autoFragmentization: true },
       );
 
@@ -1125,7 +1129,7 @@ describe('buildQueryPlan', () => {
       `;
 
       const queryPlan = buildQueryPlan(
-        buildOperationContext(schema, query, undefined),
+        buildOperationContext(schema, query, queryPlannerPointer, undefined),
         { autoFragmentization: true },
       );
 
@@ -1260,7 +1264,7 @@ describe('buildQueryPlan', () => {
     `;
 
     const queryPlan = buildQueryPlan(
-      buildOperationContext(schema, query, undefined),
+      buildOperationContext(schema, query, queryPlannerPointer, undefined),
     );
 
     expect(queryPlan).toMatchInlineSnapshot(`
@@ -1317,7 +1321,7 @@ describe('buildQueryPlan', () => {
       `;
 
       const queryPlan = buildQueryPlan(
-        buildOperationContext(schema, query, undefined),
+        buildOperationContext(schema, query, queryPlannerPointer, undefined),
       );
 
       expect(queryPlan).toMatchInlineSnapshot(`
@@ -1362,7 +1366,7 @@ describe('buildQueryPlan', () => {
       `;
 
       const queryPlan = buildQueryPlan(
-        buildOperationContext(schema, query, undefined),
+        buildOperationContext(schema, query, queryPlannerPointer, undefined),
       );
 
       expect(queryPlan).toMatchInlineSnapshot(`

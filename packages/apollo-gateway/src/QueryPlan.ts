@@ -7,6 +7,7 @@ import {
 import prettyFormat from 'pretty-format';
 import { queryPlanSerializer, astSerializer } from './snapshotSerializers';
 import { ComposedGraphQLSchema } from '@apollo/federation';
+import { WasmPointer } from '.';
 
 export type ResponsePath = (string | number)[];
 
@@ -16,6 +17,7 @@ export type OperationContext = {
   schema: ComposedGraphQLSchema;
   operation: OperationDefinitionNode;
   fragments: FragmentMap;
+  queryPlannerPointer: WasmPointer
 };
 
 export interface QueryPlan {

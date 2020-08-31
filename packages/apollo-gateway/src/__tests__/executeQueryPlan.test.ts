@@ -1,4 +1,4 @@
-import { GraphQLSchema, GraphQLError, getIntrospectionQuery } from 'graphql';
+import { GraphQLError, getIntrospectionQuery } from 'graphql';
 import { addResolversToSchema, GraphQLResolverMap } from 'apollo-graphql';
 import gql from 'graphql-tag';
 import { GraphQLRequestContext } from 'apollo-server-types';
@@ -10,6 +10,8 @@ import { LocalGraphQLDataSource } from '../datasources/LocalGraphQLDataSource';
 
 import { astSerializer, queryPlanSerializer } from '../snapshotSerializers';
 import { getFederatedTestingSchema } from './execution-utils';
+import { WasmPointer } from '..';
+import { ComposedGraphQLSchema } from '@apollo/federation';
 
 expect.addSnapshotSerializer(astSerializer);
 expect.addSnapshotSerializer(queryPlanSerializer);
@@ -26,11 +28,12 @@ describe('executeQueryPlan', () => {
     addResolversToSchema(serviceMap[serviceName].schema, resolvers);
   }
 
-  let schema: GraphQLSchema;
+  let schema: ComposedGraphQLSchema;
   let errors: GraphQLError[];
+  let queryPlannerPointer: WasmPointer;
 
   beforeEach(() => {
-    ({ serviceMap, schema, errors } = getFederatedTestingSchema());
+    ({ serviceMap, schema, errors, queryPlannerPointer } = getFederatedTestingSchema());
     expect(errors).toHaveLength(0);
   });
 
@@ -57,7 +60,7 @@ describe('executeQueryPlan', () => {
         }
       `;
 
-      const operationContext = buildOperationContext(schema, query);
+      const operationContext = buildOperationContext(schema, query, queryPlannerPointer);
       const queryPlan = buildQueryPlan(operationContext);
 
       const response = await executeQueryPlan(
@@ -90,7 +93,7 @@ describe('executeQueryPlan', () => {
         }
       `;
 
-      const operationContext = buildOperationContext(schema, query);
+      const operationContext = buildOperationContext(schema, query, queryPlannerPointer);
       const queryPlan = buildQueryPlan(operationContext);
 
       const response = await executeQueryPlan(
@@ -143,7 +146,7 @@ describe('executeQueryPlan', () => {
         }
       `;
 
-      const operationContext = buildOperationContext(schema, query);
+      const operationContext = buildOperationContext(schema, query, queryPlannerPointer);
       const queryPlan = buildQueryPlan(operationContext);
 
       const response = await executeQueryPlan(
@@ -174,7 +177,7 @@ describe('executeQueryPlan', () => {
         }
       `;
 
-      const operationContext = buildOperationContext(schema, query);
+      const operationContext = buildOperationContext(schema, query, queryPlannerPointer);
       const queryPlan = buildQueryPlan(operationContext);
 
       const response = await executeQueryPlan(
@@ -204,7 +207,7 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const operationContext = buildOperationContext(schema, query);
+    const operationContext = buildOperationContext(schema, query, queryPlannerPointer);
     const queryPlan = buildQueryPlan(operationContext);
 
     const response = await executeQueryPlan(
@@ -291,7 +294,7 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const operationContext = buildOperationContext(schema, query);
+    const operationContext = buildOperationContext(schema, query, queryPlannerPointer);
     const queryPlan = buildQueryPlan(operationContext);
 
     const requestContext = buildRequestContext();
@@ -384,7 +387,7 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const operationContext = buildOperationContext(schema, query);
+    const operationContext = buildOperationContext(schema, query, queryPlannerPointer);
     const queryPlan = buildQueryPlan(operationContext);
 
     const requestContext = buildRequestContext();
@@ -461,6 +464,7 @@ describe('executeQueryPlan', () => {
       gql`
         ${getIntrospectionQuery()}
       `,
+      queryPlannerPointer,
     );
     const queryPlan = buildQueryPlan(operationContext);
 
@@ -486,7 +490,7 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const operationContext = buildOperationContext(schema, query);
+    const operationContext = buildOperationContext(schema, query, queryPlannerPointer);
     const queryPlan = buildQueryPlan(operationContext);
 
     const response = await executeQueryPlan(
@@ -524,7 +528,7 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const operationContext = buildOperationContext(schema, query);
+    const operationContext = buildOperationContext(schema, query, queryPlannerPointer);
     const queryPlan = buildQueryPlan(operationContext);
 
     const response = await executeQueryPlan(
@@ -573,7 +577,7 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const operationContext = buildOperationContext(schema, query);
+    const operationContext = buildOperationContext(schema, query, queryPlannerPointer);
     const queryPlan = buildQueryPlan(operationContext);
 
     const response = await executeQueryPlan(
@@ -609,7 +613,7 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const operationContext = buildOperationContext(schema, query);
+    const operationContext = buildOperationContext(schema, query, queryPlannerPointer);
     const queryPlan = buildQueryPlan(operationContext);
 
     const response = await executeQueryPlan(
@@ -658,7 +662,7 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const operationContext = buildOperationContext(schema, query);
+    const operationContext = buildOperationContext(schema, query, queryPlannerPointer);
     const queryPlan = buildQueryPlan(operationContext);
 
     const response = await executeQueryPlan(
@@ -701,7 +705,7 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const operationContext = buildOperationContext(schema, query);
+    const operationContext = buildOperationContext(schema, query, queryPlannerPointer);
     const queryPlan = buildQueryPlan(operationContext);
 
     const response = await executeQueryPlan(
