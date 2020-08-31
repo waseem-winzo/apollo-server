@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@apollo/federation": "file:../apollo-federation",
-    "@apollo/query-planner": "file:../../../../packages/rust/wasm-query-planner/pkg",
+    "@apollo/query-planner-wasm": "file:../../../../packages/rust/query-planner-wasm/pkg",
     "@types/node-fetch": "2.5.4",
     "apollo-engine-reporting-protobuf": "file:../apollo-engine-reporting-protobuf",
     "apollo-env": "^0.6.1",

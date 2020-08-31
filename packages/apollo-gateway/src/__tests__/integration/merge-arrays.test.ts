@@ -1,6 +1,6 @@
 import { execute } from '../execution-utils';
 
-describe('query', () => {
+xdescribe('query', () => {
   it('supports arrays', async () => {
     const query = `#graphql
       query MergeArrays {

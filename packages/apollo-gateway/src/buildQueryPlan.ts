@@ -57,7 +57,7 @@ import {
 // import { MultiMap } from './utilities/MultiMap';
 import { ComposedGraphQLSchema } from '@apollo/federation';
 import { getFederationMetadata } from '@apollo/federation/dist/composition/utils';
-import { getQueryPlan } from '@apollo/query-planner';
+import { getQueryPlan } from '@apollo/query-planner-wasm';
 import { WasmPointer } from '.';
 
 const typenameField = {

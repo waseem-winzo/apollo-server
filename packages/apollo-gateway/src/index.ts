@@ -42,7 +42,7 @@ import { getVariableValues } from 'graphql/execution/values';
 import fetcher from 'make-fetch-happen';
 import { HttpRequestCache } from './cache';
 import { fetch } from 'apollo-server-env';
-import { getQueryPlanner } from '@apollo/query-plan';
+import { getQueryPlanner } from '@apollo/query-planner-wasm';
 
 export type ServiceEndpointDefinition = Pick<ServiceDefinition, 'name' | 'url'>;
 
