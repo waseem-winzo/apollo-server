@@ -1,6 +1,6 @@
 import { ASTNode, print, Kind, visit } from 'graphql';
 import { Plugin, Config, Refs } from 'pretty-format';
-import { SelectionNode, InlineFragmentNode } from '../QueryPlan';
+import { QueryPlanSelectionNode, QueryPlanInlineFragmentNode } from '../QueryPlan';
 import { SelectionNode as GraphQLJSSelectionNode } from 'graphql';
 
 export default {
@@ -29,15 +29,16 @@ export default {
  * for the graphql-js printer to work with
  *
  * The arg type here SHOULD be (node: AstNode | SelectionNode (from ../QueryPlan)),
- * but that breaks the graphql-js visitor, as it won't allow our redefiend
+ * but that breaks the graphql-js visitor, as it won't allow our redefined
  * SelectionNode to be passed in.
  *
  * Since our SelectionNode still has a `kind`, this will still functionally work
  * at runtime to call the InlineFragment visitor defined below
  *
- * We have to cast the `fragmentNode as undefined` and then at the bottom though, since there's
- * no way to cast it appropriately to an `InlineFragmentNode` as defined in
- * ../QueryPlan.ts. TypeScript will complain about there not being overlapping fields
+ * We have to cast the `fragmentNode as unknown` and then to an InlineFragmentNode
+ * at the bottom though, since there's no way to cast it appropriately to an
+ * `InlineFragmentNode` as defined in ../QueryPlan.ts. TypeScript will complain
+ * about there not being overlapping fields
  */
 export function remapInlineFragmentNodes(node: ASTNode): ASTNode {
   return visit(node, {
@@ -67,9 +68,8 @@ export function remapInlineFragmentNodes(node: ASTNode): ASTNode {
         selectionSet: {
           kind: Kind.SELECTION_SET,
           // we have to recursively rebuild the selectionSet using selections
-          // to print it back using the graphql printer
           selections: remapSelections(
-            ((fragmentNode as unknown) as InlineFragmentNode).selections,
+            ((fragmentNode as unknown) as QueryPlanInlineFragmentNode).selections,
           ),
         },
       };
@@ -78,7 +78,7 @@ export function remapInlineFragmentNodes(node: ASTNode): ASTNode {
 }
 
 function remapSelections(
-  selections: SelectionNode[],
+  selections: QueryPlanSelectionNode[],
 ): ReadonlyArray<GraphQLJSSelectionNode> {
   return selections.map((selection) => {
     switch (selection.kind) {
