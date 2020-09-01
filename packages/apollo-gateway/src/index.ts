@@ -254,7 +254,8 @@ export class ApolloGateway implements GraphQLService {
     if (isLocalConfig(this.config)) {
       const { schema, composedSdl } = this.createSchema(this.config.localServiceList);
       this.schema = schema;
-      this.queryPlannerPointer = getQueryPlanner(composedSdl);
+      // TODO: we should handle this, not just !
+      this.queryPlannerPointer = getQueryPlanner(composedSdl!);
     }
 
     this.initializeQueryPlanStore();
@@ -401,7 +402,8 @@ export class ApolloGateway implements GraphQLService {
 
     const { schema, composedSdl } = this.createSchema(result.serviceDefinitions);
     this.schema = schema;
-    this.queryPlannerPointer = getQueryPlanner(composedSdl);
+    // TODO: we should fail here, not !
+    this.queryPlannerPointer = getQueryPlanner(composedSdl!);
 
     // Notify the schema listeners of the updated schema
     try {

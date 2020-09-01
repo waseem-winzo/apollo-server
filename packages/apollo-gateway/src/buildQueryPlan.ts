@@ -26,7 +26,6 @@ import {
   TypeNameMetaFieldDef,
   visit,
   VariableDefinitionNode,
-  print,
   // OperationTypeNode,
   // stripIgnoredCharacters,
 } from 'graphql';
