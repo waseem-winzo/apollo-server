@@ -56,11 +56,8 @@ export async function execute(
     }),
   );
 
-  const { errors, schema, queryPlannerPointer } = getFederatedTestingSchema(services);
+  const { schema, queryPlannerPointer } = getFederatedTestingSchema(services);
 
-  if (errors && errors.length > 0) {
-    throw new GraphQLSchemaValidationError(errors);
-  }
   const operationContext = buildOperationContext(
     schema,
     gql`${request.query}`,
@@ -105,7 +102,11 @@ export function getFederatedTestingSchema(services: ServiceDefinitionModule[] = 
     })),
   );
 
-  const queryPlannerPointer = getQueryPlanner(composedSdl);
+  if (errors && errors.length > 0) {
+    throw new GraphQLSchemaValidationError(errors);
+  }
+
+  const queryPlannerPointer = getQueryPlanner(composedSdl!);
 
   return { serviceMap, schema, errors, queryPlannerPointer };
 }

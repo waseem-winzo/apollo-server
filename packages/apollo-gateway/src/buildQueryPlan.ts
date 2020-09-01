@@ -26,6 +26,7 @@ import {
   TypeNameMetaFieldDef,
   visit,
   VariableDefinitionNode,
+  print,
   // OperationTypeNode,
   // stripIgnoredCharacters,
 } from 'graphql';
@@ -803,17 +804,19 @@ export function buildOperationContext(
   schema: ComposedGraphQLSchema,
   document: DocumentNode,
   queryPlannerPointer: WasmPointer,
-  operationString: string,
+  source: string,
   operationName?: string,
 ): OperationContext {
   let operation: OperationDefinitionNode | undefined;
+  let operationCount: number = 0;
   const fragments: {
     [fragmentName: string]: FragmentDefinitionNode;
   } = Object.create(null);
   document.definitions.forEach(definition => {
     switch (definition.kind) {
       case Kind.OPERATION_DEFINITION:
-        if (!operationName && operation) {
+        operationCount++;
+        if (!operationName && operationCount > 1) {
           throw new GraphQLError(
             'Must provide operation name if query contains ' +
               'multiple operations.',
@@ -838,6 +841,18 @@ export function buildOperationContext(
       throw new GraphQLError('Must provide an operation.');
     }
   }
+
+  // In the case of multiple operations specified (operationName presence validated above),
+  // `operation` === the operation specified by `operationName`
+  const operationString = operationCount > 1
+    ? print({
+      kind: Kind.DOCUMENT,
+      definitions: [
+        operation,
+        ...Object.values(fragments),
+      ],
+    })
+    : source;
 
   return { schema, operation, fragments, queryPlannerPointer, operationString };
 }
