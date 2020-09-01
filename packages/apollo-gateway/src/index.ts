@@ -639,12 +639,13 @@ export class ApolloGateway implements GraphQLService {
   public executor = async <TContext>(
     requestContext: GraphQLRequestContextExecutionDidStart<TContext>,
   ): Promise<GraphQLExecutionResult> => {
-    const { request, document, queryHash } = requestContext;
+    const { request, document, queryHash, source } = requestContext;
     const queryPlanStoreKey = queryHash + (request.operationName || '');
     const operationContext = buildOperationContext(
       this.schema!,
       document,
       this.queryPlannerPointer!,
+      source,
       request.operationName,
     );
 
