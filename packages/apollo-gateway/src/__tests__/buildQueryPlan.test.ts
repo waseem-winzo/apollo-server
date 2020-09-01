@@ -148,6 +148,9 @@ describe('buildQueryPlan', () => {
         me {
           name
         }
+        topProducts {
+          name
+        }
       }
     `;
 
