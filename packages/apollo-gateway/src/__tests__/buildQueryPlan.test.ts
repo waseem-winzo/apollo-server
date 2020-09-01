@@ -972,11 +972,11 @@ describe('buildQueryPlan', () => {
   it(`interface fragments should expand into possible types only`, () => {
     const queryString = `#graphql
       query {
-        topReviews {
-          body
-          author {
-            reviews {
-              body
+        books {
+          ... on Product {
+            name
+            ... on Furniture {
+              upc
             }
           }
         }
@@ -1074,7 +1074,7 @@ describe('buildQueryPlan', () => {
     `);
   });
 
-  xdescribe(`experimental compression to downstream services`, () => {
+  describe.skip(`experimental compression to downstream services`, () => {
     it(`should generate fragments internally to downstream requests`, () => {
       const queryString = `#graphql
         query {
