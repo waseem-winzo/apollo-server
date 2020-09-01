@@ -56,25 +56,34 @@ describe('buildQueryPlan', () => {
   });
 
   it(`should not confuse union types with overlapping field names`, () => {
-    const query = gql`
+    const queryString = `#graphql
       query {
-        body {
-          ... on Image {
-            attributes {
-              url
+          body {
+            ... on Image {
+              attributes {
+                url
+              }
             }
-          }
-          ... on Text {
-            attributes {
-              bold
-              text
+            ... on Text {
+              attributes {
+                bold
+                text
+              }
             }
           }
         }
-      }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+    const queryDocument = gql(queryString);
+
+    const queryPlan = buildQueryPlan(
+      buildOperationContext(
+        schema,
+        queryDocument,
+        queryPlannerPointer,
+        queryString,
+      ),
+    );
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -101,7 +110,7 @@ describe('buildQueryPlan', () => {
   });
 
   it(`should use a single fetch when requesting a root field from one service`, () => {
-    const query = gql`
+    const queryString = `#graphql
       query {
         me {
           name
@@ -109,7 +118,16 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+    const queryDocument = gql(queryString);
+
+    const queryPlan = buildQueryPlan(
+      buildOperationContext(
+        schema,
+        queryDocument,
+        queryPlannerPointer,
+        queryString,
+      ),
+    );
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -125,18 +143,24 @@ describe('buildQueryPlan', () => {
   });
 
   it(`should use two independent fetches when requesting root fields from two services`, () => {
-    const query = gql`
+    const queryString = `#graphql
       query {
         me {
-          name
-        }
-        topProducts {
           name
         }
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+    const queryDocument = gql(queryString);
+
+    const queryPlan = buildQueryPlan(
+      buildOperationContext(
+        schema,
+        queryDocument,
+        queryPlannerPointer,
+        queryString,
+      ),
+    );
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -205,7 +229,7 @@ describe('buildQueryPlan', () => {
   });
 
   it(`should use a single fetch when requesting multiple root fields from the same service`, () => {
-    const query = gql`
+    const queryString = `#graphql
       query {
         topProducts {
           name
@@ -216,7 +240,16 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+    const queryDocument = gql(queryString);
+
+    const queryPlan = buildQueryPlan(
+      buildOperationContext(
+        schema,
+        queryDocument,
+        queryPlannerPointer,
+        queryString,
+      ),
+    );
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -327,7 +360,7 @@ describe('buildQueryPlan', () => {
   });
 
   it(`should use a single fetch when requesting relationship subfields from the same service`, () => {
-    const query = gql`
+    const queryString = `#graphql
       query {
         topReviews {
           body
@@ -340,7 +373,16 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+    const queryDocument = gql(queryString);
+
+    const queryPlan = buildQueryPlan(
+      buildOperationContext(
+        schema,
+        queryDocument,
+        queryPlannerPointer,
+        queryString,
+      ),
+    );
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -361,7 +403,7 @@ describe('buildQueryPlan', () => {
   });
 
   it(`should use a single fetch when requesting relationship subfields and provided keys from the same service`, () => {
-    const query = gql`
+    const queryString = `#graphql
       query {
         topReviews {
           body
@@ -375,7 +417,16 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+    const queryDocument = gql(queryString);
+
+    const queryPlan = buildQueryPlan(
+      buildOperationContext(
+        schema,
+        queryDocument,
+        queryPlannerPointer,
+        queryString,
+      ),
+    );
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -398,7 +449,7 @@ describe('buildQueryPlan', () => {
 
   describe(`when requesting an extension field from another service`, () => {
     it(`should add the field's representation requirements to the parent selection set and use a dependent fetch`, () => {
-      const query = gql`
+      const queryString = `#graphql
         query {
           me {
             name
@@ -409,7 +460,16 @@ describe('buildQueryPlan', () => {
         }
       `;
 
-      const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+      const queryDocument = gql(queryString);
+
+      const queryPlan = buildQueryPlan(
+        buildOperationContext(
+          schema,
+          queryDocument,
+          queryPlannerPointer,
+          queryString,
+        ),
+      );
 
       expect(queryPlan).toMatchInlineSnapshot(`
         QueryPlan {
@@ -447,7 +507,7 @@ describe('buildQueryPlan', () => {
 
     describe(`when the parent selection set is empty`, () => {
       it(`should add the field's requirements to the parent selection set and use a dependent fetch`, () => {
-        const query = gql`
+        const queryString = `#graphql
           query {
             me {
               reviews {
@@ -457,7 +517,16 @@ describe('buildQueryPlan', () => {
           }
         `;
 
-        const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+        const queryDocument = gql(queryString);
+
+        const queryPlan = buildQueryPlan(
+          buildOperationContext(
+            schema,
+            queryDocument,
+            queryPlannerPointer,
+            queryString,
+          ),
+        );
 
         expect(queryPlan).toMatchInlineSnapshot(`
           QueryPlan {
@@ -495,7 +564,7 @@ describe('buildQueryPlan', () => {
 
     // TODO: Ask martijn about the meaning of this test
     it(`should only add requirements once`, () => {
-      const query = gql`
+      const queryString = `#graphql
         query {
           me {
             reviews {
@@ -506,7 +575,16 @@ describe('buildQueryPlan', () => {
         }
       `;
 
-      const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+      const queryDocument = gql(queryString);
+
+      const queryPlan = buildQueryPlan(
+        buildOperationContext(
+          schema,
+          queryDocument,
+          queryPlannerPointer,
+          queryString,
+        ),
+      );
 
       expect(queryPlan).toMatchInlineSnapshot(`
         QueryPlan {
@@ -545,7 +623,7 @@ describe('buildQueryPlan', () => {
 
   describe(`when requesting a composite field with subfields from another service`, () => {
     it(`should add key fields to the parent selection set and use a dependent fetch`, () => {
-      const query = gql`
+       const queryString = `#graphql
         query {
           topReviews {
             body
@@ -556,7 +634,16 @@ describe('buildQueryPlan', () => {
         }
       `;
 
-      const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+      const queryDocument = gql(queryString);
+
+      const queryPlan = buildQueryPlan(
+        buildOperationContext(
+          schema,
+          queryDocument,
+          queryPlannerPointer,
+          queryString,
+        ),
+      );
 
       expect(queryPlan).toMatchInlineSnapshot(`
         QueryPlan {
@@ -594,7 +681,7 @@ describe('buildQueryPlan', () => {
 
     describe(`when requesting a field defined in another service which requires a field in the base service`, () => {
       it(`should add the field provided by base service in first Fetch`, () => {
-        const query = gql`
+        const queryString = `#graphql
           query {
             topCars {
               retailPrice
@@ -602,7 +689,16 @@ describe('buildQueryPlan', () => {
           }
         `;
 
-        const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+        const queryDocument = gql(queryString);
+
+        const queryPlan = buildQueryPlan(
+          buildOperationContext(
+            schema,
+            queryDocument,
+            queryPlannerPointer,
+            queryString,
+          ),
+        );
 
         expect(queryPlan).toMatchInlineSnapshot(`
           QueryPlan {
@@ -640,7 +736,7 @@ describe('buildQueryPlan', () => {
 
     describe(`when the parent selection set is empty`, () => {
       it(`should add key fields to the parent selection set and use a dependent fetch`, () => {
-        const query = gql`
+        const queryString = `#graphql
           query {
             topReviews {
               author {
@@ -650,7 +746,16 @@ describe('buildQueryPlan', () => {
           }
         `;
 
-        const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+        const queryDocument = gql(queryString);
+
+        const queryPlan = buildQueryPlan(
+          buildOperationContext(
+            schema,
+            queryDocument,
+            queryPlannerPointer,
+            queryString,
+          ),
+        );
 
         expect(queryPlan).toMatchInlineSnapshot(`
           QueryPlan {
@@ -688,7 +793,7 @@ describe('buildQueryPlan', () => {
   });
   describe(`when requesting a relationship field with extension subfields from a different service`, () => {
     it(`should first fetch the object using a key from the base service and then pass through the requirements`, () => {
-      const query = gql`
+      const queryString = `#graphql
         query {
           topReviews {
             author {
@@ -698,7 +803,16 @@ describe('buildQueryPlan', () => {
         }
       `;
 
-      const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+      const queryDocument = gql(queryString);
+
+      const queryPlan = buildQueryPlan(
+        buildOperationContext(
+          schema,
+          queryDocument,
+          queryPlannerPointer,
+          queryString,
+        ),
+      );
 
       expect(queryPlan).toMatchInlineSnapshot(`
         QueryPlan {
@@ -739,7 +853,7 @@ describe('buildQueryPlan', () => {
     // Probably an issue with extending / interfaces in composition. None of the fields from the base Book type
     // are showing up in the resulting schema.
     it(`should add __typename when fetching objects of an interface type from a service`, () => {
-      const query = gql`
+      const queryString = `#graphql
         query {
           topProducts {
             price
@@ -747,7 +861,16 @@ describe('buildQueryPlan', () => {
         }
       `;
 
-      const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+      const queryDocument = gql(queryString);
+
+      const queryPlan = buildQueryPlan(
+        buildOperationContext(
+          schema,
+          queryDocument,
+          queryPlannerPointer,
+          queryString,
+        ),
+      );
 
       expect(queryPlan).toMatchInlineSnapshot(`
         QueryPlan {
@@ -773,7 +896,7 @@ describe('buildQueryPlan', () => {
   // Probably an issue with extending / interfaces in composition. None of the fields from the base Book type
   // are showing up in the resulting schema.
   it(`should break up when traversing an extension field on an interface type from a service`, () => {
-    const query = gql`
+    const queryString = `#graphql
       query {
         topProducts {
           price
@@ -784,7 +907,16 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+    const queryDocument = gql(queryString);
+
+    const queryPlan = buildQueryPlan(
+      buildOperationContext(
+        schema,
+        queryDocument,
+        queryPlannerPointer,
+        queryString,
+      ),
+    );
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -838,20 +970,29 @@ describe('buildQueryPlan', () => {
   });
 
   it(`interface fragments should expand into possible types only`, () => {
-    const query = gql`
+    const queryString = `#graphql
       query {
-        books {
-          ... on Product {
-            name
-            ... on Furniture {
-              upc
+        topReviews {
+          body
+          author {
+            reviews {
+              body
             }
           }
         }
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+    const queryDocument = gql(queryString);
+
+    const queryPlan = buildQueryPlan(
+      buildOperationContext(
+        schema,
+        queryDocument,
+        queryPlannerPointer,
+        queryString,
+      ),
+    );
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -889,7 +1030,7 @@ describe('buildQueryPlan', () => {
   });
 
   it(`interface inside interface should expand into possible types only`, () => {
-    const query = gql`
+    const queryString = `#graphql
       query {
         product(upc: "") {
           details {
@@ -899,7 +1040,16 @@ describe('buildQueryPlan', () => {
       }
     `;
 
-    const queryPlan = buildQueryPlan(buildOperationContext(schema, query, queryPlannerPointer));
+    const queryDocument = gql(queryString);
+
+    const queryPlan = buildQueryPlan(
+      buildOperationContext(
+        schema,
+        queryDocument,
+        queryPlannerPointer,
+        queryString,
+      ),
+    );
 
     expect(queryPlan).toMatchInlineSnapshot(`
       QueryPlan {
@@ -926,7 +1076,7 @@ describe('buildQueryPlan', () => {
 
   xdescribe(`experimental compression to downstream services`, () => {
     it(`should generate fragments internally to downstream requests`, () => {
-      const query = gql`
+      const queryString = `#graphql
         query {
           topReviews {
             body
@@ -942,8 +1092,15 @@ describe('buildQueryPlan', () => {
         }
       `;
 
+      const queryDocument = gql(queryString);
+
       const queryPlan = buildQueryPlan(
-        buildOperationContext(schema, query, queryPlannerPointer, undefined),
+        buildOperationContext(
+          schema,
+          queryDocument,
+          queryPlannerPointer,
+          queryString,
+        ),
         { autoFragmentization: true },
       );
 
@@ -1049,7 +1206,7 @@ describe('buildQueryPlan', () => {
     });
 
     it(`shouldn't generate fragments for selection sets of length 2 or less`, () => {
-      const query = gql`
+      const queryString = `#graphql
         query {
           topReviews {
             body
@@ -1058,8 +1215,15 @@ describe('buildQueryPlan', () => {
         }
       `;
 
+      const queryDocument = gql(queryString);
+
       const queryPlan = buildQueryPlan(
-        buildOperationContext(schema, query, queryPlannerPointer, undefined),
+        buildOperationContext(
+          schema,
+          queryDocument,
+          queryPlannerPointer,
+          queryString,
+        ),
         { autoFragmentization: true },
       );
 
@@ -1078,7 +1242,7 @@ describe('buildQueryPlan', () => {
     });
 
     it(`should generate fragments for selection sets of length 3 or greater`, () => {
-      const query = gql`
+      const queryString = `#graphql
         query {
           topReviews {
             id
@@ -1088,8 +1252,15 @@ describe('buildQueryPlan', () => {
         }
       `;
 
+      const queryDocument = gql(queryString);
+
       const queryPlan = buildQueryPlan(
-        buildOperationContext(schema, query, queryPlannerPointer, undefined),
+        buildOperationContext(
+          schema,
+          queryDocument,
+          queryPlannerPointer,
+          queryString,
+        ),
         { autoFragmentization: true },
       );
 
@@ -1112,7 +1283,7 @@ describe('buildQueryPlan', () => {
     });
 
     it(`should generate fragments correctly when aliases are used`, () => {
-      const query = gql`
+      const queryString = `#graphql
         query {
           reviews: topReviews {
             content: body
@@ -1128,8 +1299,15 @@ describe('buildQueryPlan', () => {
         }
       `;
 
+      const queryDocument = gql(queryString);
+
       const queryPlan = buildQueryPlan(
-        buildOperationContext(schema, query, queryPlannerPointer, undefined),
+        buildOperationContext(
+          schema,
+          queryDocument,
+          queryPlannerPointer,
+          queryString,
+        ),
         { autoFragmentization: true },
       );
 
@@ -1236,7 +1414,7 @@ describe('buildQueryPlan', () => {
   });
 
   it(`should properly expand nested unions with inline fragments`, () => {
-    const query = gql`
+    const queryString = `#graphql
       query {
         body {
           ... on Image {
@@ -1263,8 +1441,15 @@ describe('buildQueryPlan', () => {
       }
     `;
 
+    const queryDocument = gql(queryString);
+
     const queryPlan = buildQueryPlan(
-      buildOperationContext(schema, query, queryPlannerPointer, undefined),
+      buildOperationContext(
+        schema,
+        queryDocument,
+        queryPlannerPointer,
+        queryString,
+      ),
     );
 
     expect(queryPlan).toMatchInlineSnapshot(`
@@ -1292,7 +1477,7 @@ describe('buildQueryPlan', () => {
 
   describe('deduplicates fields / selections regardless of adjacency and type condition nesting', () => {
     it('for inline fragments', () => {
-      const query = gql`
+      const queryString = `#graphql
         query {
           body {
             ... on Image {
@@ -1320,8 +1505,15 @@ describe('buildQueryPlan', () => {
         }
       `;
 
+      const queryDocument = gql(queryString);
+
       const queryPlan = buildQueryPlan(
-        buildOperationContext(schema, query, queryPlannerPointer, undefined),
+        buildOperationContext(
+          schema,
+          queryDocument,
+          queryPlannerPointer,
+          queryString,
+        ),
       );
 
       expect(queryPlan).toMatchInlineSnapshot(`
@@ -1344,7 +1536,7 @@ describe('buildQueryPlan', () => {
     });
 
     it('for named fragment spreads', () => {
-      const query = gql`
+      const queryString = `#graphql
         fragment TextFragment on Text {
           attributes {
             bold
@@ -1365,8 +1557,15 @@ describe('buildQueryPlan', () => {
         }
       `;
 
+      const queryDocument = gql(queryString);
+
       const queryPlan = buildQueryPlan(
-        buildOperationContext(schema, query, queryPlannerPointer, undefined),
+        buildOperationContext(
+          schema,
+          queryDocument,
+          queryPlannerPointer,
+          queryString,
+        ),
       );
 
       expect(queryPlan).toMatchInlineSnapshot(`

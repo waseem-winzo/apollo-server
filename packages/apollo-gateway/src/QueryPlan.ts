@@ -17,7 +17,8 @@ export type OperationContext = {
   schema: ComposedGraphQLSchema;
   operation: OperationDefinitionNode;
   fragments: FragmentMap;
-  queryPlannerPointer: WasmPointer
+  queryPlannerPointer: WasmPointer;
+  operationString: string;
 };
 
 export interface QueryPlan {

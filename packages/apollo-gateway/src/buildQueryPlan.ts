@@ -77,18 +77,10 @@ export function buildQueryPlan(
   _options: BuildQueryPlanOptions = { autoFragmentization: false },
 ): QueryPlan {
 
-  const document: DocumentNode = {
-    kind: Kind.DOCUMENT,
-    definitions: [
-      operationContext.operation,
-      ...Object.values(operationContext.fragments)
-    ]
-  };
-
-  const query = print(document);
-
-  return getQueryPlan(operationContext.queryPlannerPointer, query);
-
+  return getQueryPlan(
+    operationContext.queryPlannerPointer,
+    operationContext.operationString,
+  );
   // const context = buildQueryPlanningContext(operationContext, options);
 
   // if (context.operation.operation === 'subscription') {
@@ -812,6 +804,7 @@ export function buildOperationContext(
   schema: ComposedGraphQLSchema,
   document: DocumentNode,
   queryPlannerPointer: WasmPointer,
+  operationString: string,
   operationName?: string,
 ): OperationContext {
   let operation: OperationDefinitionNode | undefined;
@@ -847,7 +840,7 @@ export function buildOperationContext(
     }
   }
 
-  return { schema, operation, fragments, queryPlannerPointer };
+  return { schema, operation, fragments, queryPlannerPointer, operationString };
 }
 
 export function buildQueryPlanningContext(
