@@ -61,7 +61,12 @@ export async function execute(
   if (errors && errors.length > 0) {
     throw new GraphQLSchemaValidationError(errors);
   }
-  const operationContext = buildOperationContext(schema, gql`${request.query}`, queryPlannerPointer);
+  const operationContext = buildOperationContext(
+    schema,
+    gql`${request.query}`,
+    queryPlannerPointer,
+    request.query!
+  );
 
   const queryPlan = buildQueryPlan(operationContext);
 
