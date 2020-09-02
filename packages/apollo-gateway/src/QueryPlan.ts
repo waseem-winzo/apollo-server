@@ -11,7 +11,7 @@ import { WasmPointer } from '.';
 
 export type ResponsePath = (string | number)[];
 
-export type FragmentMap = { [fragmentName: string]: FragmentDefinitionNode };
+type FragmentMap = { [fragmentName: string]: FragmentDefinitionNode };
 
 export type OperationContext = {
   schema: ComposedGraphQLSchema;
