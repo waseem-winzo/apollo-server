@@ -20,7 +20,7 @@ features.forEach((feature) => {
   defineFeature(feature, (test) => {
     feature.scenarios.forEach((scenario) => {
       test(scenario.title, async ({ given, when, then }) => {
-        let query: DocumentNode;
+        let operationDocument: DocumentNode;
         let operationString: string;
         let queryPlan: QueryPlan;
         let options: BuildQueryPlanOptions = { autoFragmentization: false };
@@ -33,7 +33,7 @@ features.forEach((feature) => {
 
         const givenQuery = () => {
           given(/^query$/im, (operation: string) => {
-            query = gql(operation);
+            operationDocument = gql(operation);
             operationString = operation;
           })
         }
@@ -47,13 +47,12 @@ features.forEach((feature) => {
         const thenQueryPlanShouldBe = () => {
           then(/^query plan$/i, (expectedQueryPlan: string) => {
             queryPlan = buildQueryPlan(
-              buildOperationContext(
+              buildOperationContext({
                 schema,
-                query,
-                queryPlannerPointer,
+                operationDocument,
                 operationString,
-                undefined
-              ),
+                queryPlannerPointer,
+              }),
               options
             );
 

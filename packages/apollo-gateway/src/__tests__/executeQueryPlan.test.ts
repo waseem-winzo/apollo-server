@@ -49,7 +49,7 @@ describe('executeQueryPlan', () => {
 
   describe(`errors`, () => {
     it(`should not include an empty "errors" array when no errors were encountered`, async () => {
-      const queryString = `#graphql
+      const operationString = `#graphql
         query {
           me {
             name {
@@ -60,14 +60,14 @@ describe('executeQueryPlan', () => {
         }
       `;
 
-      const queryDocument = gql(queryString);
+      const operationDocument = gql(operationString);
 
-      const operationContext = buildOperationContext(
+      const operationContext = buildOperationContext({
         schema,
-        queryDocument,
+        operationDocument,
+        operationString,
         queryPlannerPointer,
-        queryString,
-      );
+      });
 
       const queryPlan = buildQueryPlan(operationContext);
 
@@ -90,7 +90,7 @@ describe('executeQueryPlan', () => {
         },
       });
 
-      const queryString = `#graphql
+      const operationString = `#graphql
         query {
           me {
             name {
@@ -101,14 +101,14 @@ describe('executeQueryPlan', () => {
         }
       `;
 
-      const queryDocument = gql(queryString);
+      const operationDocument = gql(operationString);
 
-      const operationContext = buildOperationContext(
+      const operationContext = buildOperationContext({
         schema,
-        queryDocument,
+        operationDocument,
+        operationString,
         queryPlannerPointer,
-        queryString,
-      );
+      });
 
       const queryPlan = buildQueryPlan(operationContext);
 
@@ -148,7 +148,7 @@ describe('executeQueryPlan', () => {
         },
       });
 
-      const queryString = `#graphql
+      const operationString = `#graphql
         query {
           me {
             name {
@@ -162,14 +162,14 @@ describe('executeQueryPlan', () => {
         }
       `;
 
-      const queryDocument = gql(queryString);
+      const operationDocument = gql(operationString);
 
-      const operationContext = buildOperationContext(
+      const operationContext = buildOperationContext({
         schema,
-        queryDocument,
+        operationDocument,
+        operationString,
         queryPlannerPointer,
-        queryString,
-      );
+      });
 
       const queryPlan = buildQueryPlan(operationContext);
 
@@ -187,7 +187,7 @@ describe('executeQueryPlan', () => {
     it(`should still include data from other services if one services is unavailable`, async () => {
       delete serviceMap.accounts;
 
-      const queryString = `#graphql
+      const operationString = `#graphql
         query {
           me {
             name {
@@ -201,14 +201,14 @@ describe('executeQueryPlan', () => {
         }
       `;
 
-      const queryDocument = gql(queryString);
+      const operationDocument = gql(operationString);
 
-      const operationContext = buildOperationContext(
+      const operationContext = buildOperationContext({
         schema,
-        queryDocument,
+        operationDocument,
+        operationString,
         queryPlannerPointer,
-        queryString,
-      );
+      });
 
       const queryPlan = buildQueryPlan(operationContext);
 
@@ -225,7 +225,7 @@ describe('executeQueryPlan', () => {
   });
 
   it(`should only return fields that have been requested directly`, async () => {
-    const queryString = `#graphql
+    const operationString = `#graphql
       query {
         topReviews {
           body
@@ -239,14 +239,14 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const queryDocument = gql(queryString);
+    const operationDocument = gql(operationString);
 
-    const operationContext = buildOperationContext(
+    const operationContext = buildOperationContext({
       schema,
-      queryDocument,
+      operationDocument,
+      operationString,
       queryPlannerPointer,
-      queryString,
-    );
+    });
 
     const queryPlan = buildQueryPlan(operationContext);
 
@@ -311,7 +311,7 @@ describe('executeQueryPlan', () => {
   });
 
   it('should not duplicate variable definitions', async () => {
-    const queryString = `#graphql
+    const operationString = `#graphql
       query Test($first: Int!) {
         first: topReviews(first: $first) {
           body
@@ -334,14 +334,14 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const queryDocument = gql(queryString);
+    const operationDocument = gql(operationString);
 
-    const operationContext = buildOperationContext(
+    const operationContext = buildOperationContext({
       schema,
-      queryDocument,
+      operationDocument,
+      operationString,
       queryPlannerPointer,
-      queryString,
-    );
+    });
 
     const queryPlan = buildQueryPlan(operationContext);
 
@@ -420,7 +420,7 @@ describe('executeQueryPlan', () => {
   });
 
   it('should include variables in non-root requests', async () => {
-    const queryString = `#graphql
+    const operationString = `#graphql
       query Test($locale: String) {
         topReviews {
           body
@@ -435,14 +435,14 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const queryDocument = gql(queryString);
+    const operationDocument = gql(operationString);
 
-    const operationContext = buildOperationContext(
+    const operationContext = buildOperationContext({
       schema,
-      queryDocument,
+      operationDocument,
+      operationString,
       queryPlannerPointer,
-      queryString,
-    );
+    });
 
     const queryPlan = buildQueryPlan(operationContext);
 
@@ -515,14 +515,14 @@ describe('executeQueryPlan', () => {
   });
 
   it('can execute an introspection query', async () => {
-    const operationContext = buildOperationContext(
+    const operationContext = buildOperationContext({
       schema,
-      gql`
+      operationDocument: gql`
         ${getIntrospectionQuery()}
       `,
+      operationString: getIntrospectionQuery(),
       queryPlannerPointer,
-      getIntrospectionQuery(),
-    );
+    });
     const queryPlan = buildQueryPlan(operationContext);
 
     const response = await executeQueryPlan(
@@ -537,7 +537,7 @@ describe('executeQueryPlan', () => {
   });
 
   it(`can execute queries on interface types`, async () => {
-    const queryString = `#graphql
+    const operationString = `#graphql
       query {
         vehicle(id: "1") {
           description
@@ -547,14 +547,14 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const queryDocument = gql(queryString);
+    const operationDocument = gql(operationString);
 
-    const operationContext = buildOperationContext(
+    const operationContext = buildOperationContext({
       schema,
-      queryDocument,
+      operationDocument,
+      operationString,
       queryPlannerPointer,
-      queryString,
-    );
+    });
 
     const queryPlan = buildQueryPlan(operationContext);
 
@@ -577,7 +577,7 @@ describe('executeQueryPlan', () => {
   });
 
   it(`can execute queries whose fields are interface types`, async () => {
-    const queryString = `#graphql
+    const operationString = `#graphql
       query {
         user(id: "1") {
           name {
@@ -593,14 +593,14 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const queryDocument = gql(queryString);
+    const operationDocument = gql(operationString);
 
-    const operationContext = buildOperationContext(
+    const operationContext = buildOperationContext({
       schema,
-      queryDocument,
+      operationDocument,
+      operationString,
       queryPlannerPointer,
-      queryString,
-    );
+    });
 
     const queryPlan = buildQueryPlan(operationContext);
 
@@ -629,7 +629,7 @@ describe('executeQueryPlan', () => {
   });
 
   it(`can execute queries whose fields are union types`, async () => {
-    const queryString = `#graphql
+    const operationString = `#graphql
       query {
         user(id: "1") {
           name {
@@ -650,14 +650,14 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const queryDocument = gql(queryString);
+    const operationDocument = gql(operationString);
 
-    const operationContext = buildOperationContext(
+    const operationContext = buildOperationContext({
       schema,
-      queryDocument,
+      operationDocument,
+      operationString,
       queryPlannerPointer,
-      queryString,
-    );
+    });
 
     const queryPlan = buildQueryPlan(operationContext);
 
@@ -686,7 +686,7 @@ describe('executeQueryPlan', () => {
   });
 
   it('can execute queries with falsey @requires (except undefined)', async () => {
-    const queryString = `#graphql
+    const operationString = `#graphql
       query {
         books {
           name # Requires title, year (on Book type)
@@ -694,14 +694,14 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const queryDocument = gql(queryString);
+    const operationDocument = gql(operationString);
 
-    const operationContext = buildOperationContext(
+    const operationContext = buildOperationContext({
       schema,
-      queryDocument,
+      operationDocument,
+      operationString,
       queryPlannerPointer,
-      queryString,
-    );
+    });
 
     const queryPlan = buildQueryPlan(operationContext);
 
@@ -739,7 +739,7 @@ describe('executeQueryPlan', () => {
   });
 
   it('can execute queries with list @requires', async () => {
-    const queryString = `#graphql
+    const operationString = `#graphql
       query {
         book(isbn: "0201633612") {
           # Requires similarBooks { isbn }
@@ -751,14 +751,14 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const queryDocument = gql(queryString);
+    const operationDocument = gql(operationString);
 
-    const operationContext = buildOperationContext(
+    const operationContext = buildOperationContext({
       schema,
-      queryDocument,
+      operationDocument,
+      operationString,
       queryPlannerPointer,
-      queryString,
-    );
+    });
 
     const queryPlan = buildQueryPlan(operationContext);
 
@@ -790,7 +790,7 @@ describe('executeQueryPlan', () => {
   });
 
   it('can execute queries with selections on null @requires fields', async () => {
-    const queryString = `#graphql
+    const operationString = `#graphql
       query {
         book(isbn: "0987654321") {
           # Requires similarBooks { isbn }
@@ -802,14 +802,14 @@ describe('executeQueryPlan', () => {
       }
     `;
 
-    const queryDocument = gql(queryString);
+    const operationDocument = gql(operationString);
 
-    const operationContext = buildOperationContext(
+    const operationContext = buildOperationContext({
       schema,
-      queryDocument,
+      operationDocument,
+      operationString,
       queryPlannerPointer,
-      queryString,
-    );
+    });
 
     const queryPlan = buildQueryPlan(operationContext);
 

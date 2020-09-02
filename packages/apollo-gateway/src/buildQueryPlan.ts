@@ -30,19 +30,27 @@ export function buildQueryPlan(
 }
 
 // Adapted from buildExecutionContext in graphql-js
-export function buildOperationContext(
-  schema: ComposedGraphQLSchema,
-  document: DocumentNode,
-  queryPlannerPointer: WasmPointer,
-  source: string,
-  operationName?: string,
-): OperationContext {
+interface BuildOperationContextOptions {
+  schema: ComposedGraphQLSchema;
+  operationDocument: DocumentNode;
+  operationString: string;
+  queryPlannerPointer: WasmPointer;
+  operationName?: string;
+};
+
+export function buildOperationContext({
+  schema,
+  operationDocument,
+  operationString,
+  queryPlannerPointer,
+  operationName,
+}: BuildOperationContextOptions): OperationContext {
   let operation: OperationDefinitionNode | undefined;
   let operationCount: number = 0;
   const fragments: {
     [fragmentName: string]: FragmentDefinitionNode;
   } = Object.create(null);
-  document.definitions.forEach(definition => {
+  operationDocument.definitions.forEach(definition => {
     switch (definition.kind) {
       case Kind.OPERATION_DEFINITION:
         operationCount++;
@@ -74,7 +82,7 @@ export function buildOperationContext(
 
   // In the case of multiple operations specified (operationName presence validated above),
   // `operation` === the operation specified by `operationName`
-  const operationString = operationCount > 1
+  const trimmedOperationString = operationCount > 1
     ? print({
       kind: Kind.DOCUMENT,
       definitions: [
@@ -82,7 +90,13 @@ export function buildOperationContext(
         ...Object.values(fragments),
       ],
     })
-    : source;
+    : operationString;
 
-  return { schema, operation, fragments, queryPlannerPointer, operationString };
+  return {
+    schema,
+    operation,
+    fragments,
+    queryPlannerPointer,
+    operationString: trimmedOperationString
+  };
 }

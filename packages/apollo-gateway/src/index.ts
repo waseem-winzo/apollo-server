@@ -643,13 +643,13 @@ export class ApolloGateway implements GraphQLService {
   ): Promise<GraphQLExecutionResult> => {
     const { request, document, queryHash, source } = requestContext;
     const queryPlanStoreKey = queryHash + (request.operationName || '');
-    const operationContext = buildOperationContext(
-      this.schema!,
-      document,
-      this.queryPlannerPointer!,
-      source,
-      request.operationName,
-    );
+    const operationContext = buildOperationContext({
+      schema: this.schema!,
+      operationDocument: document,
+      operationString: source,
+      queryPlannerPointer: this.queryPlannerPointer!,
+      operationName: request.operationName,
+    });
 
     // No need to build a query plan if we know the request is invalid beforehand
     // In the future, this should be controlled by the requestPipeline

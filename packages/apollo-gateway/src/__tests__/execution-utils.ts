@@ -58,12 +58,12 @@ export async function execute(
 
   const { schema, queryPlannerPointer } = getFederatedTestingSchema(services);
 
-  const operationContext = buildOperationContext(
+  const operationContext = buildOperationContext({
     schema,
-    gql`${request.query}`,
+    operationDocument: gql`${request.query}`,
+    operationString: request.query!,
     queryPlannerPointer,
-    request.query!
-  );
+  });
 
   const queryPlan = buildQueryPlan(operationContext);
 
