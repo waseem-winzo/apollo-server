@@ -1,6 +1,7 @@
 import gql from 'graphql-tag';
 import { execute, ServiceDefinitionModule } from '../execution-utils';
 import { astSerializer, queryPlanSerializer } from '../../snapshotSerializers';
+import { composeAndValidate } from '@apollo/federation';
 
 expect.addSnapshotSerializer(astSerializer);
 expect.addSnapshotSerializer(queryPlanSerializer);
@@ -45,7 +46,7 @@ const reviewService: ServiceDefinitionModule = {
     },
     User: {
       reviews(user) {
-        return reviews.filter(review => review.authorId === user.id);
+        return reviews.filter((review) => review.authorId === user.id);
       },
     },
     Review: {
@@ -88,9 +89,9 @@ const userService: ServiceDefinitionModule = {
     }
 
     type User
-      @key(fields: "ssn")
-      @key(fields: "id")
-      @key(fields: "group { id }") {
+    @key(fields: "ssn")
+    @key(fields: "id")
+    @key(fields: "group { id }") {
       id: ID!
       ssn: ID!
       name: String!
@@ -107,8 +108,8 @@ const userService: ServiceDefinitionModule = {
       group: () => ({ id: 1, name: 'Apollo GraphQL' }),
       __resolveReference(reference) {
         if (reference.ssn)
-          return users.find(user => user.ssn === reference.ssn);
-        else return users.find(user => user.id === reference.id);
+          return users.find((user) => user.ssn === reference.ssn);
+        else return users.find((user) => user.id === reference.id);
       },
     },
   },
@@ -127,12 +128,128 @@ it('fetches data correctly with multiple @key fields', async () => {
     }
   `;
 
+  const result = composeAndValidate([
+    userService,
+    reviewService,
+    actuaryService,
+  ]);
+
+  expect(result.composedSdl).toMatchInlineSnapshot(`
+    "schema
+      @graph(name: \\"users\\", url: \\"undefined\\")
+      @graph(name: \\"reviews\\", url: \\"undefined\\")
+      @graph(name: \\"actuary\\", url: \\"undefined\\")
+      @composedGraph(version: 1)
+    {
+      query: Query
+    }
+
+    directive @composedGraph(version: Int!) on SCHEMA
+
+    directive @graph(name: String!, url: String!) on SCHEMA
+
+    directive @owner(graph: String!) on OBJECT
+
+    directive @key(fields: String!, graph: String!) on OBJECT
+
+    directive @resolve(graph: String!) on FIELD_DEFINITION
+
+    directive @provides(fields: String!) on FIELD_DEFINITION
+
+    directive @requires(fields: String!) on FIELD_DEFINITION
+
+    type Group {
+      id: ID
+      name: String
+    }
+
+    type Query {
+      users: [User!]! @resolve(graph: \\"users\\")
+      reviews: [Review!]! @resolve(graph: \\"reviews\\")
+    }
+
+    type Review {
+      id: ID!
+      author: User!
+      body: String!
+    }
+
+    type User
+      @owner(graph: \\"users\\")
+      @key(fields: \\"{ ssn }\\", graph: \\"users\\")
+      @key(fields: \\"{ id }\\", graph: \\"users\\")
+      @key(fields: \\"{ group { id } }\\", graph: \\"users\\")
+      @key(fields: \\"{ id }\\", graph: \\"reviews\\")
+      @key(fields: \\"{ ssn }\\", graph: \\"actuary\\")
+    {
+      id: ID!
+      ssn: ID!
+      name: String!
+      group: Group
+      reviews: [Review!]! @resolve(graph: \\"reviews\\")
+      risk: Float @resolve(graph: \\"actuary\\")
+    }
+    "
+  `);
+
   const { data, queryPlan, errors } = await execute(
     {
       query,
     },
     [userService, reviewService, actuaryService],
   );
+
+  expect(queryPlan).toMatchInlineSnapshot(`
+    QueryPlan {
+      Sequence {
+        Fetch(service: "reviews") {
+          {
+            reviews {
+              body
+              author {
+                __typename
+                id
+                ssn
+              }
+            }
+          }
+        },
+        Flatten(path: "reviews.@.author") {
+          Fetch(service: "users") {
+            {
+              ... on User {
+                __typename
+                id
+                ssn
+              }
+            } =>
+            {
+              ... on User {
+                name
+                __typename
+                ssn
+              }
+            }
+          },
+        },
+        Flatten(path: "reviews.@.author") {
+          Fetch(service: "actuary") {
+            {
+              ... on User {
+                __typename
+                ssn
+              }
+            } =>
+            {
+              ... on User {
+                risk
+              }
+            }
+          },
+        },
+      },
+    }
+  `);
 
   expect(errors).toBeFalsy();
   expect(data).toEqual({
@@ -235,7 +352,7 @@ it('fetches keys as needed to reduce round trip queries', async () => {
     {
       query,
     },
-    [userService, reviewService, actuaryService]
+    [userService, reviewService, actuaryService],
   );
 
   expect(errors).toBeFalsy();
