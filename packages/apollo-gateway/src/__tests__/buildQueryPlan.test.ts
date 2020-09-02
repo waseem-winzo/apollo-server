@@ -4,7 +4,6 @@ import { buildQueryPlan, buildOperationContext } from '../buildQueryPlan';
 import { astSerializer, queryPlanSerializer } from '../snapshotSerializers';
 import { getFederatedTestingSchema } from './execution-utils';
 import { ComposedGraphQLSchema } from '@apollo/federation';
-import { getQueryPlan, getQueryPlanner } from '@apollo/query-planner-wasm';
 import { WasmPointer } from '..';
 
 expect.addSnapshotSerializer(astSerializer);
@@ -18,41 +17,6 @@ describe('buildQueryPlan', () => {
   beforeEach(() => {
     ({ schema, errors, queryPlannerPointer } = getFederatedTestingSchema());
     expect(errors).toHaveLength(0);
-  });
-
-  it(`getQueryPlan`, () => {
-    const csdl = `#graphql
-      schema
-        @graph(name: "test", url: "undefined")
-        @composedGraph(version: 1)
-      {
-        query: Query
-        mutation: Mutation
-      }
-
-      type Query {
-        stuff: String @resolve(graph: "test")
-      }
-    `;
-
-    const query = `#graphql
-      query {
-        stuff
-      }
-    `;
-
-    const queryPlannerPointer = getQueryPlanner(csdl);
-
-    const qp = getQueryPlan(queryPlannerPointer, query);
-    expect(qp).toMatchInlineSnapshot(`
-      QueryPlan {
-        Fetch(service: "test") {
-          {
-            stuff
-          }
-        },
-      }
-    `);
   });
 
   it(`should not confuse union types with overlapping field names`, () => {
