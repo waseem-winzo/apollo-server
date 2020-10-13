@@ -6,7 +6,7 @@ import {
   IStatsContext,
   Trace,
   ITypeStat,
-  IContextualizedStats
+  IContextualizedStats,
 } from 'apollo-reporting-protobuf';
 
 export class QueryLatencyStats implements IQueryLatencyStats {
@@ -16,12 +16,21 @@ export class QueryLatencyStats implements IQueryLatencyStats {
   persistedQueryHits: number = 0;
   persistedQueryMisses: number = 0;
   cacheLatencyCount: DurationHistogram = new DurationHistogram();
-  rootErrorStats: IPathErrorStats = Object.create(null);
+  rootErrorStats: PathErrorStats = new PathErrorStats();
   requestsWithErrorsCount: number = 0;
   publicCacheTtlCount: DurationHistogram = new DurationHistogram();
   privateCacheTtlCount: DurationHistogram = new DurationHistogram();
   registeredOperationCount: number = 0;
   forbiddenOperationCount: number = 0;
+}
+
+export class PathErrorStats implements IPathErrorStats {
+  // Using our own class over codegen class since children is a
+  // map of IPathErrorStats in codegen which throws typescript
+  // errors when trying to traverse it since children can be null there.
+  public children: { [k: string]: PathErrorStats } = Object.create(null);
+  public errorsCount: number = 0;
+  public requestsWithErrorsCount: number = 0;
 }
 
 export class TypeStat implements ITypeStat {
@@ -40,7 +49,7 @@ export class FieldStat implements IFieldStat {
   }
 }
 
-export class ContextualizedStats implements IContextualizedStats{
+export class ContextualizedStats implements IContextualizedStats {
   statsContext: IStatsContext;
   queryLatencyStats: QueryLatencyStats;
   perTypeStat: { [k: string]: TypeStat };
@@ -93,28 +102,23 @@ export class ContextualizedStats implements IContextualizedStats{
     const typeStats = this.perTypeStat;
     const rootPathErrorStats = queryLatencyStats.rootErrorStats;
 
-    function traceNodeStats(node: Trace.INode, path: ReadonlyArray<string>): boolean {
+    function traceNodeStats(
+      node: Trace.INode,
+      path: ReadonlyArray<string>,
+    ): boolean {
       // Generate error stats and error path information
       if (node.error && node.error.length > 0) {
         hasError = true;
 
         let currPathErrorStats = rootPathErrorStats;
-
-        for (const subPathEntry of path.entries()) {
-          // Using entries instead values since Node 8
-          // doesn't support Array.prototype.values
-          const subPath = subPathEntry[1];
-          let children =
-            currPathErrorStats.children ||
-            (currPathErrorStats.children = Object.create(null));
+        path.forEach((subPath) => {
+          const children = currPathErrorStats.children;
           currPathErrorStats =
-            children[subPath] || (children[subPath] = Object.create(null));
-        }
+            children[subPath] || (children[subPath] = new PathErrorStats());
+        });
 
-        currPathErrorStats.requestsWithErrorsCount =
-          (currPathErrorStats.requestsWithErrorsCount || 0) + 1;
-        currPathErrorStats.errorsCount =
-          (currPathErrorStats.errorsCount || 0) + node.error.length;
+        currPathErrorStats.requestsWithErrorsCount += 1;
+        currPathErrorStats.errorsCount += node.error.length;
       }
 
       if (
@@ -199,11 +203,11 @@ function iterateOverQueryPlan(
   } else if (node.flatten) {
     iterateOverQueryPlan(node.flatten.node, f);
   } else if (node.parallel && node.parallel.nodes) {
-    node.parallel.nodes.map(node => {
+    node.parallel.nodes.map((node) => {
       iterateOverQueryPlan(node, f);
     });
   } else if (node.sequence && node.sequence.nodes) {
-    node.sequence.nodes.map(node => {
+    node.sequence.nodes.map((node) => {
       iterateOverQueryPlan(node, f);
     });
   }
@@ -231,9 +235,8 @@ function iterateOverTraceNode(
   }
 }
 
-
 export function traceHasErrors(trace: Trace): Boolean {
-  let hasErrors = false
+  let hasErrors = false;
 
   function traceNodeStats(node: Trace.INode): boolean {
     if (node.error && node.error.length > 0) {
@@ -243,5 +246,5 @@ export function traceHasErrors(trace: Trace): Boolean {
   }
 
   iterateOverTraceForStats(trace, traceNodeStats);
-  return hasErrors
+  return hasErrors;
 }

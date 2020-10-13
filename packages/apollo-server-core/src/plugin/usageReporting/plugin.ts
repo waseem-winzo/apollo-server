@@ -64,7 +64,7 @@ class TracesSeenMap {
 
     // If we already have max trace caches then drop the oldest one if the new
     // trace will be in a more recent bucket.
-    const minEndTime = Math.min(...Array.from(this.traceCaches.keys()));
+    const minEndTime = Math.min(...this.traceCaches.keys());
     if (endTime > minEndTime && this.traceCaches.size >= this.maxTraceCaches) {
       this.traceCaches.delete(minEndTime);
     }
