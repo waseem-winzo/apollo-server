@@ -35,7 +35,7 @@ import { computeExecutableSchemaId } from '../schemaReporting';
 import type { InternalApolloServerPlugin } from '../internalPlugin';
 import { DurationHistogram } from './durationHistogram';
 import { ContextualizedStats, traceHasErrors } from "./contextualizedStats";
-import { InMemoryLRUCache } from 'apollo-server-caching';
+import { TracesSeenMap } from "./tracesSeenCache";
 
 const reportHeaderDefaults = {
   hostname: os.hostname(),
@@ -46,52 +46,6 @@ const reportHeaderDefaults = {
   // XXX not actually uname, but what node has easily.
   uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`,
 };
-
-class TracesSeenMap {
-  readonly traceCaches: Map<number, InMemoryLRUCache<Boolean>> = new Map();
-  readonly maxTraceCaches: number = 3;
-
-  async seen(endTime: number, cacheKey: string): Promise<Boolean> {
-    return (await this.traceCaches.get(endTime)?.get(cacheKey)) || false;
-  }
-
-  async add(endTime: number, cacheKey: string) {
-    const traceCache = this.traceCaches.get(endTime);
-    if (traceCache) {
-      await traceCache.set(cacheKey, true);
-      return;
-    }
-
-    // If we already have max trace caches then drop the oldest one if the new
-    // trace will be in a more recent bucket.
-    const minEndTime = Math.min(...this.traceCaches.keys());
-    if (endTime > minEndTime && this.traceCaches.size >= this.maxTraceCaches) {
-      this.traceCaches.delete(minEndTime);
-    }
-
-    if (this.traceCaches.size < this.maxTraceCaches) {
-      const newTraceCache = new InMemoryLRUCache<Boolean>({
-        // 3MiB limit, very much approximately since we can't be sure how V8 might
-        // be storing these strings internally. Though this should be enough to
-        // store a fair amount of traces.
-
-        // A future version of this might expose some
-        // configuration option to grow the cache, but ideally, we could do that
-        // dynamically based on the resources available to the server, and not add
-        // more configuration surface area. Hopefully the warning message will allow
-        // us to evaluate the need with more validated input from those that receive
-        // it.
-        maxSize: Math.pow(2, 20) * 3,
-        sizeCalculator: (_, key) => {
-          return Buffer.byteLength(key, 'uft8');
-        },
-      });
-      this.traceCaches.set(endTime, newTraceCache);
-      await newTraceCache.set(cacheKey, true);
-      return;
-    }
-  }
-}
 
 class ReportData {
   report!: Report;
