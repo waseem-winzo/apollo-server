@@ -34,8 +34,8 @@ import { GraphQLSchema, printSchema } from 'graphql';
 import { computeExecutableSchemaId } from '../schemaReporting';
 import type { InternalApolloServerPlugin } from '../internalPlugin';
 import { DurationHistogram } from './durationHistogram';
-import { ContextualizedStats, traceHasErrors } from "./contextualizedStats";
-import { TracesSeenMap } from "./tracesSeenCache";
+import { ContextualizedStats, traceHasErrors } from './contextualizedStats';
+import { TracesSeenMap } from './tracesSeenCache';
 
 const reportHeaderDefaults = {
   hostname: os.hostname(),
@@ -524,20 +524,23 @@ export function ApolloServerPluginUsageReporting<TContext>(
               ].statsWithContext = new StatsMap();
             }
 
-            const endTime =
-              ((trace && trace.endTime && trace.endTime.seconds) || 0) % 60;
+            const endTimeSeconds = trace?.endTime?.seconds ?? 0;
 
             // This is a potentially expensive operation to do on every trace.
+            // We may want to optimize this later so we don't have to potentially
+            // iterate over the entire trace body
             const hasErrors = traceHasErrors(trace);
             const traceCacheKey = JSON.stringify({
               statsReportKey,
               statsBucket: DurationHistogram.durationToBucket(trace.durationNs),
-              endsAtMinute: endTime,
-              errorKey: hasErrors ? endTime % 5 : '',
+              endsAtMinute: endTimeSeconds / 60,
+              // If the trace has an error send one errored trace per 5 second interval
+              // instead of the normal minutely bucket a non-errored trace takes.
+              errorKey: hasErrors ? endTimeSeconds % 5 : '',
             });
 
             const convertTraceToStats = await tracesSeenMap.seen(
-              endTime,
+              endTimeSeconds / 60,
               traceCacheKey,
             );
 

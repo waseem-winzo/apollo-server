@@ -140,8 +140,7 @@ export class ContextualizedStats implements IContextualizedStats {
           ] = new FieldStat(node.type);
         }
 
-        // We only create the object in the above line so we can know they aren't null
-        fieldStat.errorsCount = (node.error && node.error.length) || 0;
+        fieldStat.errorsCount = node.error?.length ?? 0;
         fieldStat.count++;
         // Note: this is actually counting the number of resolver calls for this
         // field that had at least one error, not the number of overall GraphQL
@@ -150,7 +149,7 @@ export class ContextualizedStats implements IContextualizedStats {
         // (Well, actually the Go engineproxy implementation is even buggier because
         // it counts errors multiple times if multiple resolvers have the same path.)
         fieldStat.requestsWithErrorsCount +=
-          node.error && node.error.length > 0 ? 1 : 0;
+          (node.error?.length ?? 0) > 0 ? 1 : 0;
         fieldStat.latencyCount.incrementDuration(node.endTime - node.startTime);
       }
 
@@ -189,12 +188,7 @@ function iterateOverQueryPlan(
 ): void {
   if (!node) return;
 
-  if (
-    node.fetch &&
-    node.fetch.trace &&
-    node.fetch.trace.root &&
-    node.fetch.serviceName
-  ) {
+  if (node.fetch?.trace?.root && node.fetch.serviceName) {
     iterateOverTraceNode(
       node.fetch.trace.root,
       [`service:${node.fetch.serviceName}`],
@@ -203,11 +197,11 @@ function iterateOverQueryPlan(
   } else if (node.flatten) {
     iterateOverQueryPlan(node.flatten.node, f);
   } else if (node.parallel && node.parallel.nodes) {
-    node.parallel.nodes.map((node) => {
+    node.parallel.nodes.forEach((node) => {
       iterateOverQueryPlan(node, f);
     });
   } else if (node.sequence && node.sequence.nodes) {
-    node.sequence.nodes.map((node) => {
+    node.sequence.nodes.forEach((node) => {
       iterateOverQueryPlan(node, f);
     });
   }
@@ -235,7 +229,7 @@ function iterateOverTraceNode(
   }
 }
 
-export function traceHasErrors(trace: Trace): Boolean {
+export function traceHasErrors(trace: Trace): boolean {
   let hasErrors = false;
 
   function traceNodeStats(node: Trace.INode): boolean {
