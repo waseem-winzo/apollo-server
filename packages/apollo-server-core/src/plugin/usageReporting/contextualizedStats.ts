@@ -107,7 +107,7 @@ export class ContextualizedStats implements IContextualizedStats {
       path: ReadonlyArray<string>,
     ): boolean {
       // Generate error stats and error path information
-      if (node.error && node.error.length > 0) {
+      if ((node.error?.length ?? 0) > 0) {
         hasError = true;
 
         let currPathErrorStats = rootPathErrorStats;
@@ -128,19 +128,17 @@ export class ContextualizedStats implements IContextualizedStats {
         node.endTime != null &&
         node.startTime != null
       ) {
-        let typeStat = typeStats[node.parentType];
-        if (!typeStat) {
-          typeStat = typeStats[node.parentType] = new TypeStat();
-        }
+        const typeStat =
+          typeStats[node.parentType] ||
+          (typeStats[node.parentType] = new TypeStat());
 
-        let fieldStat = typeStat.perFieldStat[node.originalFieldName];
-        if (!fieldStat) {
-          fieldStat = typeStat.perFieldStat[
-            node.originalFieldName
-          ] = new FieldStat(node.type);
-        }
+        const fieldStat =
+          typeStat.perFieldStat[node.originalFieldName] ||
+          (typeStat.perFieldStat[node.originalFieldName] = new FieldStat(
+            node.type,
+          ));
 
-        fieldStat.errorsCount = node.error?.length ?? 0;
+        fieldStat.errorsCount += node.error?.length ?? 0;
         fieldStat.count++;
         // Note: this is actually counting the number of resolver calls for this
         // field that had at least one error, not the number of overall GraphQL
@@ -188,7 +186,7 @@ function iterateOverQueryPlan(
 ): void {
   if (!node) return;
 
-  if (node.fetch?.trace?.root && node.fetch.serviceName) {
+  if (node.fetch?.trace?.root && node.fetch.serviceName !== null) {
     iterateOverTraceNode(
       node.fetch.trace.root,
       [`service:${node.fetch.serviceName}`],
@@ -233,7 +231,7 @@ export function traceHasErrors(trace: Trace): boolean {
   let hasErrors = false;
 
   function traceNodeStats(node: Trace.INode): boolean {
-    if (node.error && node.error.length > 0) {
+    if ((node.error?.length ?? 0) > 0) {
       hasErrors = true;
     }
     return hasErrors;
