@@ -1,4 +1,4 @@
-import { Trace, TypeStat } from 'apollo-reporting-protobuf';
+import { Trace } from 'apollo-reporting-protobuf';
 import { dateToProtoTimestamp } from '../../traceTreeBuilder';
 import { ContextualizedStats } from 'apollo-server-core/dist/plugin/usageReporting/contextualizedStats';
 import { DurationHistogram } from '../durationHistogram';
@@ -30,6 +30,7 @@ describe('Check query latency stats when', () => {
     expect(contextualizedStats.queryLatencyStats.requestsWithErrorsCount).toBe(
       0,
     );
+    expect(contextualizedStats).toMatchSnapshot();
   });
   it('adding a fully cached trace', () => {
     const contextualizedStats = new ContextualizedStats(statsContext);
@@ -44,6 +45,7 @@ describe('Check query latency stats when', () => {
     expect(
       contextualizedStats.queryLatencyStats.cacheLatencyCount,
     ).toStrictEqual(new DurationHistogram().incrementDuration(duration));
+    expect(contextualizedStats).toMatchSnapshot();
   });
   it('adding a public cached trace', () => {
     const contextualizedStats = new ContextualizedStats(statsContext);
@@ -61,6 +63,7 @@ describe('Check query latency stats when', () => {
     expect(
       contextualizedStats.queryLatencyStats.privateCacheTtlCount,
     ).toStrictEqual(new DurationHistogram().incrementDuration(1000));
+    expect(contextualizedStats).toMatchSnapshot();
   });
   it('adding a private cached trace', () => {
     const contextualizedStats = new ContextualizedStats(statsContext);
@@ -78,6 +81,7 @@ describe('Check query latency stats when', () => {
     expect(
       contextualizedStats.queryLatencyStats.publicCacheTtlCount,
     ).toStrictEqual(new DurationHistogram().incrementDuration(1000));
+    expect(contextualizedStats).toMatchSnapshot();
   });
   it('adding a persisted hit trace', () => {
     const contextualizedStats = new ContextualizedStats(statsContext);
@@ -89,6 +93,7 @@ describe('Check query latency stats when', () => {
     );
     expect(contextualizedStats.queryLatencyStats.requestCount).toBe(1);
     expect(contextualizedStats.queryLatencyStats.persistedQueryHits).toBe(1);
+    expect(contextualizedStats).toMatchSnapshot();
   });
   it('adding a persisted miss trace', () => {
     const contextualizedStats = new ContextualizedStats(statsContext);
@@ -100,6 +105,7 @@ describe('Check query latency stats when', () => {
     );
     expect(contextualizedStats.queryLatencyStats.requestCount).toBe(1);
     expect(contextualizedStats.queryLatencyStats.persistedQueryMisses).toBe(1);
+    expect(contextualizedStats).toMatchSnapshot();
   });
   it('adding a forbidden trace', () => {
     const contextualizedStats = new ContextualizedStats(statsContext);
@@ -113,6 +119,7 @@ describe('Check query latency stats when', () => {
     expect(contextualizedStats.queryLatencyStats.forbiddenOperationCount).toBe(
       1,
     );
+    expect(contextualizedStats).toMatchSnapshot();
   });
   it('adding a registered trace', () => {
     const contextualizedStats = new ContextualizedStats(statsContext);
@@ -126,6 +133,7 @@ describe('Check query latency stats when', () => {
     expect(contextualizedStats.queryLatencyStats.registeredOperationCount).toBe(
       1,
     );
+    expect(contextualizedStats).toMatchSnapshot();
   });
   it('adding an errored trace ', () => {
     const contextualizedStats = new ContextualizedStats(statsContext);
@@ -158,6 +166,7 @@ describe('Check query latency stats when', () => {
       contextualizedStats.queryLatencyStats.rootErrorStats.children['user']
         .errorsCount,
     ).toBe(1);
+    expect(contextualizedStats).toMatchSnapshot();
   });
   it('merging errored traces', () => {
     const contextualizedStats = new ContextualizedStats(statsContext);
@@ -271,6 +280,7 @@ describe('Check query latency stats when', () => {
       contextualizedStats.queryLatencyStats.rootErrorStats.children['account']
         .children['name'].errorsCount,
     ).toBe(1);
+    expect(contextualizedStats).toMatchSnapshot();
   });
   it('merging non-errored traces', () => {
     const contextualizedStats = new ContextualizedStats(statsContext);
@@ -328,6 +338,7 @@ describe('Check query latency stats when', () => {
         .incrementDuration(duration)
         .incrementDuration(duration),
     );
+    expect(contextualizedStats).toMatchSnapshot();
   });
 });
 
@@ -421,156 +432,25 @@ describe('Check type stats', () => {
   it('add single non-federated trace', () => {
     const contextualizedStats = new ContextualizedStats(statsContext);
     contextualizedStats.addTrace(trace);
-    expect(contextualizedStats.perTypeStat).toEqual({
-      User: new TypeStat({
-        perFieldStat: {
-          email: {
-            returnType: 'String!',
-            errorsCount: 0,
-            count: 1,
-            requestsWithErrorsCount: 0,
-            latencyCount: new DurationHistogram().incrementDuration(5),
-          },
-          friends: {
-            returnType: '[String!]!',
-            errorsCount: 0,
-            count: 1,
-            requestsWithErrorsCount: 0,
-            latencyCount: new DurationHistogram().incrementDuration(5),
-          },
-        },
-      }),
-      Query: new TypeStat({
-        perFieldStat: {
-          user: {
-            returnType: 'User!',
-            errorsCount: 0,
-            count: 1,
-            requestsWithErrorsCount: 0,
-            latencyCount: new DurationHistogram().incrementDuration(100 * 1000),
-          },
-        },
-      }),
-    });
+    expect(contextualizedStats).toMatchSnapshot();
   });
   it('add multiple non-federated trace', () => {
     const contextualizedStats = new ContextualizedStats(statsContext);
     contextualizedStats.addTrace(trace);
     contextualizedStats.addTrace(trace);
-    expect(contextualizedStats.perTypeStat).toEqual({
-      User: new TypeStat({
-        perFieldStat: {
-          email: {
-            returnType: 'String!',
-            errorsCount: 0,
-            count: 2,
-            requestsWithErrorsCount: 0,
-            latencyCount: new DurationHistogram()
-              .incrementDuration(5)
-              .incrementDuration(5),
-          },
-          friends: {
-            returnType: '[String!]!',
-            errorsCount: 0,
-            count: 2,
-            requestsWithErrorsCount: 0,
-            latencyCount: new DurationHistogram()
-              .incrementDuration(5)
-              .incrementDuration(5),
-          },
-        },
-      }),
-      Query: new TypeStat({
-        perFieldStat: {
-          user: {
-            returnType: 'User!',
-            errorsCount: 0,
-            count: 2,
-            requestsWithErrorsCount: 0,
-            latencyCount: new DurationHistogram()
-              .incrementDuration(100 * 1000)
-              .incrementDuration(100 * 1000),
-          },
-        },
-      }),
-    });
-  });
+    expect(contextualizedStats).toMatchSnapshot();
+});
 
   it('add multiple federated trace', () => {
     const contextualizedStats = new ContextualizedStats(statsContext);
     contextualizedStats.addTrace(federatedTrace);
     contextualizedStats.addTrace(federatedTrace);
-    expect(contextualizedStats.perTypeStat).toEqual({
-      User: new TypeStat({
-        perFieldStat: {
-          email: {
-            returnType: 'String!',
-            errorsCount: 0,
-            count: 2,
-            requestsWithErrorsCount: 0,
-            latencyCount: new DurationHistogram()
-              .incrementDuration(5)
-              .incrementDuration(5),
-          },
-          friends: {
-            returnType: '[String!]!',
-            errorsCount: 0,
-            count: 2,
-            requestsWithErrorsCount: 0,
-            latencyCount: new DurationHistogram()
-              .incrementDuration(5)
-              .incrementDuration(5),
-          },
-        },
-      }),
-      Query: new TypeStat({
-        perFieldStat: {
-          user: {
-            returnType: 'User!',
-            errorsCount: 0,
-            count: 2,
-            requestsWithErrorsCount: 0,
-            latencyCount: new DurationHistogram()
-              .incrementDuration(100 * 1000)
-              .incrementDuration(100 * 1000),
-          },
-        },
-      }),
-    });
+    expect(contextualizedStats).toMatchSnapshot();
   });
-  it('add multiple federated trace', () => {
+  it('add multiple errored traces trace', () => {
     const contextualizedStats = new ContextualizedStats(statsContext);
     contextualizedStats.addTrace(errorTrace);
-    expect(contextualizedStats.perTypeStat).toEqual({
-      User: new TypeStat({
-        perFieldStat: {
-          email: {
-            returnType: 'String!',
-            errorsCount: 2,
-            count: 1,
-            requestsWithErrorsCount: 1,
-            latencyCount: new DurationHistogram().incrementDuration(5),
-          },
-          friends: {
-            returnType: '[String!]!',
-            errorsCount: 0,
-            count: 1,
-            requestsWithErrorsCount: 0,
-            latencyCount: new DurationHistogram().incrementDuration(5),
-          },
-        },
-      }),
-      Query: new TypeStat({
-        perFieldStat: {
-          user: {
-            returnType: 'User!',
-            errorsCount: 0,
-            count: 1,
-            requestsWithErrorsCount: 0,
-            latencyCount: new DurationHistogram().incrementDuration(100 * 1000),
-          },
-        },
-      }),
-    });
+    contextualizedStats.addTrace(errorTrace);
+    expect(contextualizedStats).toMatchSnapshot();
   });
 });

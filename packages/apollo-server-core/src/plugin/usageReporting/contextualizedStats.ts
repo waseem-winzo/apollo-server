@@ -107,7 +107,7 @@ export class ContextualizedStats implements IContextualizedStats {
       path: ReadonlyArray<string>,
     ): boolean {
       // Generate error stats and error path information
-      if ((node.error?.length ?? 0) > 0) {
+      if (node.error && node.error.length > 0) {
         hasError = true;
 
         let currPathErrorStats = rootPathErrorStats;
